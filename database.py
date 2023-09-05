@@ -159,7 +159,7 @@ def SelAction(id: int) -> str:
 
 def Action(id: int, act: str):
     with connection:
-        cursor.execute("UPDATE admins SET action = :act WHERE user_id = :id", ({"act": act, "id": id}))
+        cursor.execute("UPDATE Admins SET action = :act WHERE user_id = :id", ({"act": act, "id": id}))
 
 def AllInfAdmin(id: int, n: str, ln: str, un: str):
     with connection:

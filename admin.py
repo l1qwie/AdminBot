@@ -1,6 +1,5 @@
 import datetime
 import database
-from testdb import DatabaseTest
 import keyboards as nav
 import re
 
@@ -58,10 +57,10 @@ LEVEL5 = 5
 
 def DispatchPhrase (id: int, phrase: str):
     a = RetrieveAdmin(id)
-    print("phrase =", phrase)
-    #print(vars(a))
+    print(a.level, phrase, a.act)
     if phrase in ('Узнать кто записался', 'Настроить расписание', 'Создать нового пользователя', 'Зарегестрировать пользователя', 'Настроить пользователя', 'Отчет'):
         if a.level == OPTIONS:
+            print("hello")
             (text, kbd, prmode, halt, spreadsheet, fixed) = MenuOptions(a, id, phrase)
     elif phrase == "MainMenu" or phrase == "/menu":
         text = "Главное меню"
@@ -273,6 +272,7 @@ def ViewWhoReg(a: Admin, id: int, phrase: str):
             a.level = OPTIONS
     spreadsheet = None
     fixed = None
+    print("TEXT =", text)
     return (text, kbd, prmode, halt, spreadsheet, fixed)
 
 def ChangeSchedule(a: Admin, id: int, phrase: str):
@@ -376,14 +376,14 @@ P.S. Если чо, то вот моя главная команда /menu он�
 
 def MenuOptions(a: Admin, id: int, phrase: str):
     halt = False
-    if phrase in ("Узнать кто записался", "Настроить расписание", "Зарегестрировать пользователя"):
+    if phrase in ('Узнать кто записался', 'Настроить расписание', 'Зарегестрировать пользователя'):
         text = "Выберите вид спорта:"
         kbd = nav.MenuSports
-        if phrase == "Узнать кто записался":
+        if phrase == 'Узнать кто записался':
             a.act = "view registered users"
-        elif phrase == "Настроить расписание":
+        elif phrase == 'Настроить расписание':
             a.act = "schedule setting"
-        elif phrase == "Зарегестрировать пользователя":
+        elif phrase == 'Зарегестрировать пользователя':
             a.act = "registration new user"
         a.level = START
         spreadsheet = None
@@ -407,6 +407,7 @@ def MenuOptions(a: Admin, id: int, phrase: str):
     database.Action(id, a.act)
     prmode = None
     fixed = None
+    print(a.act)
     return (text, kbd, prmode, halt, spreadsheet, fixed)    
 
 
