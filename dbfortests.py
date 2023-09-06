@@ -15,7 +15,7 @@ class TestDB:
 
     def ResetOptions(self, id: int):
         with self.connection:
-            self.cursor.execute("UPDATE admins SET action = NULL, level = 3 WHERE user_id = ?", (id,))
+            self.cursor.execute("UPDATE admins SET action = 'divarication', level = 3 WHERE user_id = ?", (id,))
 
 
     def ResetAll(self, id: int):
@@ -78,3 +78,15 @@ class TestDB:
     def Updatelvl(self, id: int, lvl: int):
         with self.connection:
             self.cursor.execute("UPDATE Admins SET level = ? WHERE user_id = ?", (lvl, id,))
+    
+    def CustomSport(self, sport: str, id: int):
+        with self.connection:
+            self.cursor.execute("UPDATE Admins SET sport_schedule = :sport WHERE user_id = :id", ({"sport": sport, "id": id}))
+            
+    def CustomDate(self, date: str, id: id):
+        with self.connection:
+            self.cursor.execute("UPDATE Admins SET date_schedule = :date WHERE user_id = :id", ({"date": date, "id": id}))
+
+    def CustomTime(self, time: str, id: int):
+        with self.connection:
+            self.cursor.execute("UPDATE Admins SET time_schedule = :time WHERE user_id = :id", ({"time": time, "id": id}))

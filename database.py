@@ -125,6 +125,7 @@ def RetainAdmin(id: int, name: str, surname: str,
                 sport_check_users: str,
                 date_check_users: str,
                 time_check_users: str,
+                user_id_check_users: int,
                 fromwhere_new_user: str,
                 name_new_user: str,
                 lastname_new_user: str,
@@ -144,11 +145,11 @@ def RetainAdmin(id: int, name: str, surname: str,
                 level: int,
                 uid: int):
     with connection:
-        cursor.execute("""UPDATE Admins SET user_id = ?, name = ?, last_name = ?, username = ?, action = ?, sport_check_users = ?, date_check_users = ?, time_check_users = ?, 
+        cursor.execute("""UPDATE Admins SET user_id = ?, name = ?, last_name = ?, username = ?, action = ?, sport_check_users = ?, date_check_users = ?, time_check_users = ?, user_id_check_users = ?,
                             fromwhere_new_user = ?, name_new_user = ?, lastname_new_user = ?, language_new_user = ?, phonenum_new_user = ?, 
                             sport_schedule = ?, date_schedule = ?, time_schedule = ?, seats_schedule = ?, sport_reg_ad_us = ?, date_reg_ad_us = ?, time_reg_ad_us = ?, seats_reg_ad_us = ?, payment_reg_ad_us = ?, 
                             user_id_change_user = ?, action_change_user = ?,level = ? WHERE user_id = ?""", 
-                            (id, name, surname, username, act, sport_check_users, date_check_users, time_check_users,
+                            (id, name, surname, username, act, sport_check_users, date_check_users, time_check_users, user_id_check_users,
                                 fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule,
                                 date_schedule, time_schedule, seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level, uid))
 
@@ -252,13 +253,13 @@ def RecallAdmin(id: int):
             cursor.execute("INSERT INTO Admins (user_id, action, setup_reg, level) VALUES (?, 'registation', 'start', ?)", (id, res+1,))
         else:
             res = int(level[0])
-        cursor.execute("""SELECT user_id, name, last_name, username, action, sport_check_users, date_check_users, time_check_users,
+        cursor.execute("""SELECT user_id, name, last_name, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
                                 fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule, date_schedule, time_schedule,
                                 seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level FROM Admins WHERE user_id = :id""", ({"id": id}))
-        (user_id, name, surname, username, act, sport_check_users, date_check_users, time_check_users,
+        (user_id, name, surname, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
         fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule, date_schedule, time_schedule,
         seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level) = cursor.fetchone()
-        return (user_id, name, surname, username, act, sport_check_users, date_check_users, time_check_users,
+        return (user_id, name, surname, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
         fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule, date_schedule, time_schedule, seats_schedule,
         sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level)
         
@@ -421,3 +422,19 @@ def UpdateInfAboutUs(fw: str, name: str, lastname: str, lang: str, phonenum: str
             cursor.execute("UPDATE Users SET language = :lang WHERE user_id = :id", ({"lang": lang, "id": id}))
         elif phonenum is not None:
             cursor.execute("UPDATE Users SET phone_number = :phonenum WHERE user_id = :id", ({"phonenum": phonenum, "id": id}))
+
+def CheckDate(date: str, sport: str):
+    with connection:
+        cursor.execute("SELECT COUNT(*) FROM Schedule WHERE sport = :sport and date = :date", ({"sport": sport, "date": date}))
+        return cursor.fetchone()[0]
+    
+def CheckTime(dt: str, sp: str, tm: str):
+    with connection:
+        cursor.execute("SELECT COUNT(*) FROM Schedule WHERE sport = :sp and date = :dt and time = :tm", ({"sp": sp, "dt": dt, "tm": tm}))
+        res = cursor.fetchone()[0]
+        return res
+    
+def CheckUser(id: int):
+    with connection:
+        cursor.execute("SELECT COUNT(*) FROM Users WHERE user_id = :id", ({"id": id}))
+        return cursor.fetchone()[0]

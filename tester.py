@@ -21,6 +21,60 @@ def T2():
 def TestingNamer (name: str, nick: str) -> str:
     return name + nick
 
+def FindCrashes():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    tdb.DelAllInSch(738070596)
+    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "volleyball", "volleyballll", "enything else", "football"]
+    for fitem in first:
+        tdb.Adjustment("schedule setting", 0, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
+        if fitem in ("volleyball", "football"):
+            assert(text == "Напишите дату проведения игры\nОбязательно в таком формате: ДД-ММ-ГГГГ\n\n\n ОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел")
+            assert(kbd == None)
+            print("дада я")
+        else:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nВыбрите вид спорта")
+            assert(kbd == nav.MenuSports)
+    tdb.CustomSport("volleyball", 738070596)
+    second = ['asjhdahjksdhjkas', '11111111', 1111111, "14-07-2024", "06,02,2024", "20.12.2024", '04 02 2025', "66-27-2055", "76,27,2055" "56.57.2035", "33 55 2333", "15-07,2024", "24.07 2024"]
+    for sitem in second:
+        tdb.Adjustment("schedule setting", 1, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, sitem)
+        if admin.DateCheck(sitem) == False:
+            assert(text == "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату\n\n\nОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел")
+            assert(kbd == None)
+        else:
+            assert(text == "Напишите время проведения игры в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел")
+            assert(kbd == None)
+            tdb.Adjustment("schedule setting", 1, 738070596)
+    tdb.CustomDate("14-07-2024", 738070596)
+    third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6"]
+    for thitem in third:
+        tdb.Adjustment("schedule setting", 2, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, thitem)
+        bruh, time = admin.TimeCheck(thitem)
+        if bruh == False:
+            assert(text == "Вы ввели не время\nНапишите мне время в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел")
+            assert(kbd == None)
+        else:
+            assert(text == "Напишите количетсво мест \n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)")
+            assert(kbd == None)
+            tdb.Adjustment("schedule setting", 2, 738070596)
+    tdb.CustomTime("12:00", 738070596)
+    fourth = [1111, 2, "Тристо", 55, 12, "2 3", "4 56 77 zzzzz"]
+    for fitem in fourth:
+        tdb.Adjustment("schedule setting", 3, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
+        if admin.IntCheck(fitem) == False:
+            assert(text == "Вы ввели не число или же это число больше чем трехзначное значение\n\nПожалуйста, введите число, соблюдая все условия, а не что то еще\n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)")
+            assert(kbd == None)
+        else:
+            assert(text == "Расписание успешно обновлено\nДобро пожаловать в главное меню")
+            assert(kbd == nav.MenuOptions)
+            tdb.Adjustment("schedule setting", 3, 738070596)
+
+
 #Global test
 def GlobalTest():
     admin.namer = TestingNamer
@@ -56,7 +110,7 @@ def GlobalTest():
         elif op == 5:
             ReportWork(option_button[op])
         op += 1
-
+    
 
 
 
@@ -339,7 +393,7 @@ def ReportWork(option: str):
     #Report
     database.ConnectTo("..\\bot(for_all)\\test_database.db")
     html_file = admin.CreateTable()
-    tdb.Adjustment(None, 3, 738070596)
+    tdb.Adjustment("divarication", 3, 738070596)
     (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, option)
     html_file = admin.CreateTable()
     assert(spreadsheet == html_file)
@@ -349,6 +403,7 @@ def MenuOp(option: str, op_answers_text: list, op_answers_kb: list, op: int):
     tdb.ResetOptions(738070596)
     (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, option)
     if op < 3:
+        print("!!!!", op_answers_text[0])
         assert(text == op_answers_text[0])
         assert(kbd == op_answers_kb[0])
     elif op == 3:

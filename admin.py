@@ -25,6 +25,7 @@ class Admin:
     sport_check_users: str
     date_check_users: str
     time_check_users: str
+    user_id_check_users: int
     fromwhere_new_user: str
     name_new_user: str
     lastname_new_user: str
@@ -57,21 +58,8 @@ LEVEL5 = 5
 
 def DispatchPhrase (id: int, phrase: str):
     a = RetrieveAdmin(id)
-    print(a.level, phrase, a.act)
-    if phrase in ('Узнать кто записался', 'Настроить расписание', 'Создать нового пользователя', 'Зарегестрировать пользователя', 'Настроить пользователя', 'Отчет'):
-        if a.level == OPTIONS:
-            print("hello")
-            (text, kbd, prmode, halt, spreadsheet, fixed) = MenuOptions(a, id, phrase)
-    elif phrase == "MainMenu" or phrase == "/menu":
-        text = "Главное меню"
-        kbd = nav.MenuOptions
-        prmode = None
-        halt = None
-        a.level = OPTIONS
-        a.act = None
-        spreadsheet = None
-        fixed = None
-    elif a.act == "registation":
+    print('level =', a.level, 'phrase =', phrase, 'action =', a.act)
+    if a.act == "registation":
        (text, kbd, prmode, halt, spreadsheet, fixed) = REG(a, id, phrase)
     elif a.act == "create new user":
         (text, kbd, prmode, halt, spreadsheet, fixed) = CreateNewUser(a, id, phrase)
@@ -83,7 +71,32 @@ def DispatchPhrase (id: int, phrase: str):
         (text, kbd, prmode, halt, spreadsheet, fixed) = RegistiredAdminUser(a, id, phrase)
     elif a.act == "сhange user":
         (text, kbd, prmode, halt, spreadsheet, fixed) = ChangeUsers(a, id, phrase)
+    elif a.act == "divarication":
+        if phrase in ('Узнать кто записался', 'Настроить расписание', 'Создать нового пользователя', 'Зарегестрировать пользователя', 'Настроить пользователя', 'Отчет'):
+            if a.level == OPTIONS:
+                print("hello")
+                (text, kbd, prmode, halt, spreadsheet, fixed) = MenuOptions(a, id, phrase)
+        else:
+            text = "!!!СЕЙЧАС Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!!!"
+            kbd = nav.MenuOptions
+            prmode = None
+            halt = None
+            a.level = OPTIONS
+            a.act = "divarication"
+            spreadsheet = None
+            fixed = None
+    elif phrase == "MainMenu" or phrase == "/menu":
+        text = "Главное меню"
+        kbd = nav.MenuOptions
+        prmode = None
+        halt = None
+        a.level = OPTIONS
+        a.act = None
+        spreadsheet = None
+        fixed = None
     RetainAdmin(a)
+    print("a.act =", a.act)
+    print("TEXT =", text)
     return (text, kbd, prmode, halt, spreadsheet, fixed)
 
 
@@ -106,7 +119,7 @@ def ChangeUsers(a: Admin, id: int, phrase: str):
             text = "Пользователь удален. Все данные, все регистрации, вообще вся информация, которая могла быть в боте, благополучно удалена\n\n\nВозвращаю вас в главное меню"
             kbd = nav.MenuOptions
             a.level = OPTIONS
-            a.act = None
+            a.act = "divarication"
     elif a.level == LEVEL2:
         if phrase == "fronwhere":
             a.fromwhere_new_user = "nextaction"
@@ -202,6 +215,7 @@ def RegistiredAdminUser(a: Admin, id: int, phrase: str):
         text = "Мои поздравления! Вы зарегестрировали этого пользователя на игру.\nВозвращаю Вас в главное меню"
         kbd = nav.MenuOptions
         a.level = OPTIONS
+        a.act = "divarication"
     prmode = None
     spreadsheet = None
     fixed = None
@@ -214,51 +228,73 @@ def ViewWhoReg(a: Admin, id: int, phrase: str):
     halt = False
     if a.level == START:
         prmode = None
-        days = database.GamesWithUsers(phrase)
-        if days == []:
-            text = "Никого нет\nВыберите вид спорта:"
-            kbd = nav.MenuSports
-        if database.Nobody() == True:
-            text = "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\n\nВозвращаю вас в главное меню"
-            kbd = nav.MenuOptions
-            a.level = OPTIONS
-            a.act = None
+        if phrase in ("volleyball", "football"):
+            days = database.GamesWithUsers(phrase)
+            if days == []:
+                text = "Никого нет\nВыберите вид спорта:"
+                kbd = nav.MenuSports
+            if database.Nobody() == True:
+                text = "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\n\nВозвращаю вас в главное меню"
+                kbd = nav.MenuOptions
+                a.level = OPTIONS
+                a.act = "divarication"
+            else:
+                a.sport_check_users = phrase
+                text = "Выберите дату:"
+                kbd = nav.kbdata(days)
+                a.level = LEVEL1
         else:
-            a.sport_check_users = phrase
-            text = "Выберите дату:"
-            kbd = nav.kbdata(days)
-            a.level = LEVEL1
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите вид спорта"
+            kbd = nav.MenuSports
     elif a.level == LEVEL1:
         prmode = None
-        (times, seats) = database.TimeOfGamesWithUsers(a.id, phrase)
-        if times == []:
-            text = "Почему-то тут никого нет\nВозвращаю вас в главное меню"
-            kbd = nav.MenuOptions
-            a.level = START
-            a.act = None
-            database.Action(id, a.act)
+        if database.CheckDate(phrase, a.sport_check_users) != 0:
+            (times, seats) = database.TimeOfGamesWithUsers(a.id, phrase)
+            if times == []:
+                text = "Почему-то тут никого нет\nВозвращаю вас в главное меню"
+                kbd = nav.MenuOptions
+                a.level = START
+                a.act = "divarication"
+                database.Action(id, a.act)
+            else:
+                a.date_check_users = phrase
+                text = "Выберите время проведения игры:"
+                kbd = nav.kbtime(times, seats)
+                a.level = LEVEL2
         else:
-            a.date_check_users = phrase
-            text = "Выберите время проведения игры:"
-            kbd = nav.kbtime(times, seats)
-            a.level = LEVEL2
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
+            days = database.GamesWithUsers(a.sport_check_users)
+            kbd = nav.kbdata(days)
     elif a.level == LEVEL2:
         prmode = None
-        a.time_check_users = phrase
-        (name_users, id_users) = database.UsersOfGamesWithUsers(id, phrase)
-        text = f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
-        kbd = nav.kbnames(name_users, id_users)
-        a.level = LEVEL3
+        kk = [a.sport_check_users, a.date_check_users, phrase]
+        print(kk)
+        if database.CheckTime(a.date_check_users, a.sport_check_users, phrase) != 0:
+            a.time_check_users = phrase
+            (name_users, id_users) = database.UsersOfGamesWithUsers(id, phrase)
+            text = f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
+            kbd = nav.kbnames(name_users, id_users)
+            a.level = LEVEL3
+        else:
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите время"
+            (times, seats) = database.TimeOfGamesWithUsers(a.id, a.date_check_users)
+            kbd = nav.kbtime(times, seats)
     elif a.level == LEVEL3:
         prmode = None
-        (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(id, int(phrase))
-        if username != "Информация отсутствует":
-            prmode = "HTML"
-            nick = (f"t.me/{username}")
-            name = namer(name, nick)
-        text = f"Вот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
-        kbd = nav.BackorMenu
-        a.level = LEVEL4
+        if database.CheckUser(phrase) != 0:
+            a.user_id_check_users = int(phrase)
+            (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(id, a.user_id_check_users)
+            if username != "Информация отсутствует":
+                prmode = "HTML"
+                nick = (f"t.me/{username}")
+                name = namer(name, nick)
+            text = f"Вот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
+            kbd = nav.BackorMenu
+            a.level = LEVEL4
+        else:
+            (name_users, id_users) = database.UsersOfGamesWithUsers(id, a.time_check_users)
+            text = f"Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nНа эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
+            kbd = nav.kbnames(name_users, id_users)
     elif a.level == LEVEL4:
         prmode = None
         if phrase == "back":
@@ -270,6 +306,11 @@ def ViewWhoReg(a: Admin, id: int, phrase: str):
             text = "Добро пожаловать в главное меню"
             kbd = nav.MenuOptions
             a.level = OPTIONS
+            a.act = "divarication"
+        else:
+            (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(id, a.user_id_check_users)
+            text = f"Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
+            kbd = nav.BackorMenu
     spreadsheet = None
     fixed = None
     print("TEXT =", text)
@@ -277,35 +318,45 @@ def ViewWhoReg(a: Admin, id: int, phrase: str):
 
 def ChangeSchedule(a: Admin, id: int, phrase: str):
     if a.level == START:
-        a.sport_schedule = phrase
-        text = "Напишите дату проведения игры\nОбязательно в таком формате - ДД-ММ-ГГГГ"
-        kbd = None
-        a.level = LEVEL1
+        if phrase in ("volleyball", "football"):
+            a.sport_schedule = phrase
+            text = "Напишите дату проведения игры\nОбязательно в таком формате: ДД-ММ-ГГГГ\n\n\n ОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел"
+            kbd = None
+            a.level = LEVEL1
+        else:
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nВыбрите вид спорта"
+            kbd = nav.MenuSports
     elif a.level == LEVEL1:
         if DateCheck(phrase) == True:
             a.date_schedule = phrase
-            text = "Напишите время проведения игры в форманте ЧЧ:ММ"
+            text = "Напишите время проведения игры в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел"
             kbd = None
             a.level = LEVEL2
         else:
-            text = "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату"
+            text = "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату\n\n\nОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел"
             kbd = None
     elif a.level == LEVEL2:
-        if TimeCheck(phrase) == True:
-            a.time_schedule = phrase
-            text = "Напишите количетсво мест"
+        halt, time = TimeCheck(phrase)
+        if halt == True:
+            a.time_schedule = time
+            text = "Напишите количетсво мест \n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)"
             kbd = None
             a.level = LEVEL3
         else:
-            text = "Вы ввели не время\nНапишите мне время в форманте ЧЧ:ММ"
+            text = "Вы ввели не время\nНапишите мне время в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел"
             kbd = None
     elif a.level == LEVEL3:
-        a.seats_schedule = phrase
-        text = "Расписание успешно обновлено\nДобро пожаловать в главное меню"
-        kbd = nav.MenuOptions
-        database.NewScheduleGame(id, phrase)
-        a.level = OPTIONS
-        a.act = None
+        if IntCheck(phrase) == True:
+            print("але, да")
+            a.seats_schedule = phrase
+            text = "Расписание успешно обновлено\nДобро пожаловать в главное меню"
+            kbd = nav.MenuOptions
+            database.NewScheduleGame(id, phrase)
+            a.level = OPTIONS
+            a.act = "divarication"
+        else:
+            text = "Вы ввели не число или же это число больше чем трехзначное значение\n\nПожалуйста, введите число, соблюдая все условия, а не что то еще\n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)"
+            kbd = None
     prmode = None
     halt = None
     spreadsheet = None
@@ -334,6 +385,7 @@ def REG(a: Admin, id: int, phrase: str):
         if value == False:
             text = "Пароль не верный! Попробуйте еще..."
             kbd = None
+            fixed = None
         else:
             a.level = LEVEL3
             text = """Вот пара рекомендаций, как мной пользоваться:
@@ -367,9 +419,7 @@ P.S. Если чо, то вот моя главная команда /menu он�
         kbd = nav.MenuOptions
         a.level = OPTIONS
         fixed = None
-    elif a.level == OPTIONS:
-        (text, kbdm, prmode) = MenuOptions(a, id, phrase)
-        fixed = None
+        a.act = "divarication"
     prmode = None
     spreadsheet = None
     return (text, kbd, prmode, halt, spreadsheet, fixed)
@@ -404,10 +454,12 @@ def MenuOptions(a: Admin, id: int, phrase: str):
         text = None
         spreadsheet = CreateTable()
         kbd = nav.WatNext
+    else:
+        text = "!!!АЛЕ ДА, НА ДАННЫЙ МОМЕНТ Я ВОСПРИНИМАЮ ТОЛЬКО НАЖАТИЯ НА КНОПКИ!!!\n\n\nВыберите интересующю Вас опцию"
+        kbd = nav.MenuOptions
     database.Action(id, a.act)
     prmode = None
     fixed = None
-    print(a.act)
     return (text, kbd, prmode, halt, spreadsheet, fixed)    
 
 
@@ -467,7 +519,7 @@ def CreateNewUser(a: Admin, id: int, phrase: str):
         kbd = nav.MenuOptions
         a.phonenum_new_user = phrase
         database.CreateNewUser(id, phrase)
-        a.act = None
+        a.act = "divarication"
         a.level = OPTIONS
     prmode = None
     spreadsheet = None
@@ -582,101 +634,97 @@ def SeatsCheck(id: int, seat: str) -> bool:
 
 
 
-def DateCheck(date_click: str) -> bool:
-    if re.match(r"\d{1,2}-\d{1,2}-\d{4}", date_click):
-        date_pattern = r"\d{1,2}-\d{1,2}-\d{4}"
-        date = re.findall(date_pattern, date_click)
-        day, month, year  = map(int, date[0].split('-'))
-
-        halt = DateCheck2(day, month, year)
-    elif re.match(r"\d{1,2},\d{1,2},\d{4}", date_click):
-        date_pattern = r"\d{1,2},\d{1,2},\d{4}"
-        date = re.findall(date_pattern, date_click)
-        day, month, year  = map(int, date[0].split(','))
-
-        halt = DateCheck2(day, month, year)
-    elif re.match(r"\d{1,2}.\d{1,2}.\d{4}", date_click):
-        date_pattern = r"\d{1,2}.\d{1,2}.\d{4}"
-        date = re.findall(date_pattern, date_click)
-        day, month, year  = map(int, date[0].split('.'))
-
-        halt = DateCheck2(day, month, year)
-    elif re.match(r"\d{1,2}\s\d{1,2}\s\d{4}", date_click):
-        date_pattern = r"\d{1,2}\s\d{1,2}\s\d{4}"
-        date = re.findall(date_pattern, date_click)
-        day, month, year  = map(int, date[0].split('\s'))
-
-        halt = DateCheck2(day, month, year)
+def DateCheck(date_click) -> bool:
+    if isinstance(date_click, str):
+        halt = DateCheck2(date_click)
     else:
-        halt = False
+        new_date_click = str(date_click)
+        halt = DateCheck2(new_date_click)
     return halt
 
 
-def DateCheck2(day: int, month: int, year: int):
-    halt = True
-    #for item in date:
-    today = datetime.date.today()
-    print(today)
-    day_today = today.day
-    month_today = today.month
-    year_today = today.year
-    print(day_today, month_today, year_today)
-    print(day, month, year)
-    if year_today <= year <= 2050:
-        if 1 <= month_today <= month <= 12:
-            if 1 <= day_today <= day <= 31:
-                if month == 2:
-                    if 1 <= day <= 28:
-                        halt = True
-                    else:
-                        halt = False
-                elif month % 2 == 0:
-                    if 1 <= day <= 30:
-                        halt = True
-                    else:
-                        halt = False
-                elif month % 2 == 1:
-                    if 1 <= day <= 31:
-                        halt = True
-                    else:
-                        halt = False
-                else:
-                    halt = False
-            else:
-                halt = False
+def DateCheck2(date_click: str):
+    if re.findall(r'\d{1,2}[^0-9]+\d{1,2}[^0-9]+\d{4}', date_click):
+        date_pattern = r'\d{1,2}[^0-9]+\d{1,2}[^0-9]+\d{4}'
+        match = re.search(date_pattern, date_click)
+        if match:
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            date_match = match.group(0)
+            components = re.findall(r'\d+', date_match)
+            day, month, year = map(int, components)
+            halt = DateCheck3(day,month, year)
         else:
             halt = False
     else:
-            halt = False
-    print(halt)
-    return halt
-
-def TimeCheck(time_click: str) -> bool:
-    if re.findall(r'\d{1,2}:\d{2}', time_click):
-        time_pattern = r"\d{1,2}:\d{2}"
-        time = re.findall(time_pattern, time_click)
-        hour, minute = map(int, time[0].split(':'))
-        halt = TimeCheck2(hour, minute)
-    elif re.findall(r'\d{1,2},\d{2}', time_click):
-        time_pattern = r"\d{1,2},\d{2}"
-        time = re.findall(time_pattern, time_click)
-        hour, minute = map(int, time[0].split(','))
-        halt = TimeCheck2(hour, minute)
-    elif re.findall(r'\d{1,2}\s\d{2}', time_click):
-        time_pattern = r"\d{1,2}\s\d{2}"
-        time = re.findall(time_pattern, time_click)
-        hour, minute = map(int, time[0].split('\s'))
-        halt = TimeCheck2(hour, minute)
-    else: 
         halt = False
     return halt
 
-def TimeCheck2(hr: int, min: int):
+
+def DateCheck3(day: int, month: int, year: int) -> bool:
+    try:
+        date = datetime.date(year, month, day)
+        today = datetime.date.today()
+        if date > today:
+            halt = True
+        else:
+            halt = False
+    except:
+        halt = False
+    return halt
+
+
+def TimeCheck(time_click) -> bool:
+    if isinstance(time_click, str):
+        halt, time = TimeCheck2(time_click)
+    else:
+        new_time_click= str(time_click)
+        halt, time = TimeCheck2(new_time_click)
+    return halt, time
+
+
+def TimeCheck2(time_click: str) -> bool:
+    if re.findall(r'\d{1,2}[^0-9]+\d{1,2}', time_click):
+        time_pattern = r'\d{1,2}[^0-9]+\d{1,2}'
+        match = re.search(time_pattern, time_click)
+        if match:
+            time_match = match.group(0)
+            components = re.findall(r'\d+', time_match)
+            hour, minute = map(int, components)
+            halt = TimeCheck3(hour, minute)
+            time = f"{hour}:{minute}"
+            print(time)
+        else:
+            print("here")
+            halt = False
+            time = None
+    else:
+        halt = False
+        time = None
+    return halt, time
+
+def TimeCheck3(hr: int, min: int):
     if 0 <= hr <= 23 and 0 <= min <= 60:
         halt = True
     else:
         halt = False
     return halt
+
+def IntCheck(mes) -> bool:
+    if isinstance(mes, str):
+        halt = IntCheck2(mes)
+    else:
+        new_mes= str(mes)
+        halt = IntCheck2(new_mes)
+    return halt
+
+def IntCheck2(mes: str) -> bool:
+    if re.fullmatch(r'^\d{1,2}$', mes):
+        halt = True
+    else:
+        print("ну почему")
+        halt = False
+    return halt
+
 
 def EvPrevMsgId(uid: int, name: str, lname: str, usname: str):
     mes_id = database.RecognizeExMesID(uid, name, lname, usname)
@@ -695,6 +743,7 @@ def RetrieveAdmin(uid: int) -> Admin:
     a.sport_check_users = None
     a.date_check_users = None
     a.time_check_users = None
+    a.user_id_check_users = None
     a.fromwhere_new_user = None
     a.name_new_user = None
     a.lastname_new_user = None
@@ -713,7 +762,7 @@ def RetrieveAdmin(uid: int) -> Admin:
     a.action_change_user = None
 
     a.level = None
-    (a.id, a.name, a.surname, a.username, a.act, a.sport_check_users, a.date_check_users, a.time_check_users,
+    (a.id, a.name, a.surname, a.username, a.act, a.sport_check_users, a.date_check_users, a.time_check_users, a.user_id_check_users,
     a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user,
     a.sport_schedule, a.date_schedule, a.time_schedule, a.seats_schedule, a.sport_reg_ad_us, a.date_reg_ad_us,
     a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.level) = database.RecallAdmin(uid)
@@ -735,7 +784,8 @@ def CheckPassword(text: str) -> bool:
 
 
 def RetainAdmin(a: Admin):
-    database.RetainAdmin(a.id, a.name, a.surname, a.username, a.act, a.sport_check_users, a.date_check_users, a.time_check_users,
+    database.RetainAdmin(a.id, a.name, a.surname, a.username, a.act, a.sport_check_users, a.date_check_users, a.time_check_users, a.user_id_check_users,
     a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user, a.sport_schedule, a.date_schedule, a.time_schedule, a.seats_schedule, 
     a.sport_reg_ad_us, a.date_reg_ad_us, a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.level, a.id)
     #db.UpdateAdmin(a.id, a.level, a.data_act, a.act)
+    print("1adasd", a.act)
