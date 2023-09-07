@@ -21,7 +21,112 @@ def T2():
 def TestingNamer (name: str, nick: str) -> str:
     return name + nick
 
-def FindCrashes():
+
+
+
+def FindCrashesRegUs():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    tdb.DelAllInSch(738070596)
+    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "volleyball", "volleyballll", "enything else", "football"]
+    for fitem in first:
+        tdb.Adjustment("registration new user", 0, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
+        if fitem in ("volleyball", "football"):
+            schedule = database.FindDates()
+            if schedule == 0:
+                assert(text == "Нет ни одной добавленной игры в расписании! Добавьте сначала игру в расписание, а уже потом регестрируйте пользователя\n\n\nГлавное меню")
+                assert(kbd == nav.MenuOptions)
+            else:
+                days = database.AllFreeDates(fitem)
+                if days == []:
+                    assert(text == "В расписании нет дат на этот вид спорта\nВыберите другой вид спорта или создайте новоую игру")
+                    assert(kbd == nav.MenuSports)
+                else:
+                    assert(text == "Выберете дату:")
+                    assert(kbd == nav.kbdata(database.AllFreeDates(fitem)))
+        else:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите вид спрота")
+            assert(kbd == nav.MenuSports)
+    second = ['asjhdahjksdhjkas', '11111111', 1111111, "20-02-2024", "14-07-2024", "15-12-2023", "06,02,2024", "20.12.2024", '04 02 2025', "66-27-2055", "76,27,2055" "56.57.2035", "33 55 2333", "15-07,2024", "24.07 2024"]
+    #tdb.CustomSportRegUs("volleyball", 738070596)
+    for sitem in second:
+        tdb.Adjustment("registration new user", 1, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, sitem)
+        sport = tdb.SelSport(738070596)
+        days = database.AllFreeDates(sport)
+        bruh, date = admin.DateCheck(sitem)
+        list_for_comparison = []
+        for row in days:
+            error, dateschedule = admin.DateCheck(row)
+            list_for_comparison.append(dateschedule)
+        if bruh == True:
+            i = 0
+            while i < len(list_for_comparison):
+                if date == list_for_comparison[i]:
+                    already = True
+                    i = len(list_for_comparison)
+                else:
+                    already = False
+                i += 1
+        else:
+            already = False
+        if already is not True:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите дату")
+            assert(kbd == nav.kbdata(database.AllFreeDates(sport)))
+        else:
+            times = database.TimesOfFreeDates(sitem, sport)
+            seats = database.SeatsofTimesofDateofSport(sitem, sport)
+            assert(text == "Выберите время проведения игры")
+            assert(kbd == nav.kbtime(times, seats))
+    third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6", "9 6"]
+    for thitem in third:
+        tdb.Adjustment("registration new user", 2, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, thitem)
+        sport = tdb.SelSport(738070596)
+        date = tdb.SelDate(738070596)
+        times = database.TimesOfFreeDates(date, sport)
+        bruh, timeschedule = admin.TimeCheck(thitem, date)
+        list_for_comparison = []
+        for row in times:
+            error, dateschedule = admin.TimeCheck(row, date)
+            list_for_comparison.append(dateschedule)
+        if bruh == True:
+            i = 0
+            while i < len(list_for_comparison):
+                if timeschedule == list_for_comparison[i]:
+                    already = True
+                    i = len(list_for_comparison)
+                else:
+                    already = False
+                i += 1
+        else:
+            already = False
+        if already is not True:
+            seats = database.SeatsofTimesofDateofSport(date, sport)
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите время проведения игры")
+            assert(kbd == nav.kbtime(times, seats))
+        else:
+            assert(text == "Выберите или введите желаемое количетсво мест")
+            assert(kbd == nav.FrequentChoice)
+    fourth = [1111, 2, "Тристо", 55, 12, "2 3", "4 56 77 zzzzz"]
+    for fitem in fourth:
+        tdb.Adjustment("registration new user", 3, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, thitem)
+        if admin.IntCheck(fitem):
+            if admin.SeatsCheck(738070596, fitem):
+                assert(text == "Выберите способ оплаты")
+                assert(kbd == nav.KbPay)
+            else:
+                assert(text == "Вы ввели не цифру или же вы ввели цифру котороая больше чем свободныйх мест на эту игру\n\n\nВыберите или введите желаемое количетсво мест")
+                assert(kbd == nav.FrequentChoice)
+        else:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите или введите желаемое количетсво мест")
+            assert(kbd == nav.FrequentChoice)
+
+
+
+def FindCrashesSchedule():
     admin.namer = TestingNamer
     database.ConnectTo("..\\bot(for_all)\\test_database.db")
     tdb.DelAllInSch(738070596)
@@ -41,19 +146,20 @@ def FindCrashes():
     for sitem in second:
         tdb.Adjustment("schedule setting", 1, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, sitem)
-        if admin.DateCheck(sitem) == False:
+        bruh, date = admin.DateCheck(sitem)
+        if bruh == False:
             assert(text == "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату\n\n\nОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел")
             assert(kbd == None)
         else:
             assert(text == "Напишите время проведения игры в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел")
             assert(kbd == None)
             tdb.Adjustment("schedule setting", 1, 738070596)
-    tdb.CustomDate("14-07-2024", 738070596)
     third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6"]
     for thitem in third:
         tdb.Adjustment("schedule setting", 2, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, thitem)
-        bruh, time = admin.TimeCheck(thitem)
+        date = tdb.SelDateSch()
+        bruh, time = admin.TimeCheck(thitem, date)
         if bruh == False:
             assert(text == "Вы ввели не время\nНапишите мне время в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел")
             assert(kbd == None)
@@ -73,6 +179,126 @@ def FindCrashes():
             assert(text == "Расписание успешно обновлено\nДобро пожаловать в главное меню")
             assert(kbd == nav.MenuOptions)
             tdb.Adjustment("schedule setting", 3, 738070596)
+
+
+def FindCrashesViewWhoReg():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    tdb.DelAllInSch(738070596)
+    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "volleyballll", "enything else", "volleyball"]
+    for fitem in first:
+        tdb.Adjustment("view registered users", 0, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
+        if fitem in ("volleyball", "football"):
+            days_db = database.GamesWithUsers(fitem)
+            days_ready = []
+            db = 0
+            if database.Nobody() == True:
+                assert(text == "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\n\nВозвращаю вас в главное меню")
+                assert(kbd == nav.MenuOptions)
+            elif days_db != []:
+                while db < len(days_db):
+                    year = days_db[db]//10000
+                    month = (days_db[db]-(year*10000))//100
+                    day = (days_db[db]-(year*10000)-(month*100))//1
+                    date_str = f"{day}-{month}-{year}"
+                    days_ready.append(date_str)
+                    db += 1
+                print("days_ready:", days_ready)
+                assert(text == "Выберите дату:")
+                assert(kbd == nav.kbdata(days_ready))
+            else:
+                assert(text == "Никого нет\nВыберите вид спорта:")
+                assert(kbd == nav.MenuSports)
+        else:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите вид спорта")
+            assert(kbd == nav.MenuSports)
+    second = ['asjhdahjksdhjkas', '11111111', 1111111, "14-07-2024", "06,02,2024", "20.12.2024", '04 02 2025', "76,27,2055" "56.57.2035", "33 55 2333", "15-07,2024", "24.07 2024", "20-02-2024"]
+    for sitem in second:
+        tdb.Adjustment("view registered users", 1, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, sitem)
+        bruh, date = admin.DateCheck(sitem)
+        sport = tdb.SelSportView(738070596)
+        if bruh is True:
+            if database.CheckDate(date, sport) != 0:
+                (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
+                if times != []:
+                    times_ready = []
+                    tm = 0
+                    while tm < len(times):
+                        hour = times[tm]//100
+                        minute = (times[tm]-(hour*100))//1
+                        time_str = f"{hour}:{minute}"
+                        times_ready.append(time_str)
+                        tm += 1
+                    print("times_ready:", times_ready)
+                    assert(text == "Выберите время проведения игры:")
+                    assert(kbd == nav.kbtime(time_str, seats))
+                else:
+                    assert(text == "Почему-то тут никого нет\nВозвращаю вас в главное меню")
+                    assert(kbd == nav.MenuOptions)
+            else:
+                assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
+                db = 0
+                days_ready = []
+                days_db = database.GamesWithUsers(sport)
+                while db < len(days_db):
+                    year = days_db[db]//10000
+                    month = (days_db[db]-(year*10000))//100
+                    day = (days_db[db]-(year*10000)-(month*100))//1
+                    date_str = f"{day}-{month}-{year}"
+                    days_ready.append(date_str)
+                    db += 1
+                kbd = nav.kbdata(days_ready)
+        else:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
+            db = 0
+            days_ready = []
+            days_db = database.GamesWithUsers(sport)
+            while db < len(days_db):
+                year = days_db[db]//10000
+                month = (days_db[db]-(year*10000))//100
+                day = (days_db[db]-(year*10000)-(month*100))//1
+                date_str = f"{day}-{month}-{year}"
+                days_ready.append(date_str)
+                db += 1
+            kbd = nav.kbdata(days_ready)
+    third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6"]
+    for thitem in third:
+        tdb.Adjustment("view registered users", 2, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, thitem)
+        date = tdb.SelDateView(738070596)
+        bruh, time = admin.TimeCheck(thitem, date)
+        sport = tdb.SelSportView(738070596)
+        if halt is True:
+            if database.CheckTime(date, sport, time) != 0:
+                (name_users, id_users) = database.UsersOfGamesWithUsers(738070596, time)
+                assert(text == f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:")
+                assert(kbd == nav.kbnames(name_users, id_users))
+            else:
+                assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
+                (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
+                times_ready = []
+                tm = 0
+                while tm < len(times):
+                    hour = times[tm]//100
+                    minute = (times[tm]-(hour*100))//1
+                    time_str = f"{hour}:{minute}"
+                    times_ready.append(time_str)
+                    tm += 1
+                assert(kbd == nav.kbtime(times, seats))
+        else:
+            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
+            (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
+            times_ready = []
+            tm = 0
+            while tm < len(times):
+                hour = times[tm]//100
+                minute = (times[tm]-(hour*100))//1
+                time_str = f"{hour}:{minute}"
+                times_ready.append(time_str)
+                tm += 1
+            assert(kbd == nav.kbtime(times, seats))
 
 
 #Global test

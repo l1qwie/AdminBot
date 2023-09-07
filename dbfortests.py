@@ -90,3 +90,37 @@ class TestDB:
     def CustomTime(self, time: str, id: int):
         with self.connection:
             self.cursor.execute("UPDATE Admins SET time_schedule = :time WHERE user_id = :id", ({"time": time, "id": id}))
+
+    def CustomSportRegUs(self, sport: str, id: int):
+        with self.connection:
+            self.cursor.execute("UPDATE Admins SET sport_reg_ad_us = :sport WHERE user_id = :id", ({"sport": sport, "id": id}))
+
+    def SelSport(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT sport_reg_ad_us FROM Admins WHERE user_id = :id", ({"id": id}))
+            return self.cursor.fetchone()[0]
+    
+    def SelDate(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT date_reg_ad_us FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+        
+    def SelTime(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT time_reg_ad_us FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+        
+    def SelSportView(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT sport_check_users FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+
+    def SelDateView(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT date_check_users FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+    
+    def SelDateSch(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT date_schedule FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]

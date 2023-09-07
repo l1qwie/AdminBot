@@ -123,8 +123,8 @@ def RetainAdmin(id: int, name: str, surname: str,
                 username: str,
                 act: str,
                 sport_check_users: str,
-                date_check_users: str,
-                time_check_users: str,
+                date_check_users: int,
+                time_check_users: int,
                 user_id_check_users: int,
                 fromwhere_new_user: str,
                 name_new_user: str,
@@ -132,12 +132,12 @@ def RetainAdmin(id: int, name: str, surname: str,
                 language_new_user: str,
                 phonenum_new_user: str,
                 sport_schedule: str,
-                date_schedule: str,
-                time_schedule: str,
+                date_schedule: int,
+                time_schedule: int,
                 seats_schedule: int,
                 sport_reg_ad_us: str,
-                date_reg_ad_us: str,
-                time_reg_ad_us: str,
+                date_reg_ad_us: int,
+                time_reg_ad_us: int,
                 seats_reg_ad_us: int,
                 payment_reg_ad_us: str,
                 user_id_change_user: str,
@@ -204,7 +204,7 @@ def UpdateActionInformation(id: int, inf: str, exlvl: int, nextlvl: int, act: st
             inf = past_value + ',' + inf
         cursor.execute(f"UPDATE admins SET data_action = :inf, level = :nextlvl WHERE user_id = :id and level = :exlvl and action = :act", ({"inf": inf, "id": id, "exlvl": exlvl, "nextlvl": nextlvl, "act": act}))
 
-def TimeOfGamesWithUsers(id: int, date: str) -> list:
+def TimeOfGamesWithUsers(id: int, date: int) -> list:
     with connection:
         cursor.execute("SELECT sport_check_users FROM Admins WHERE user_id = :id", ({"id": id}))
         sport = cursor.fetchone()[0]
@@ -334,6 +334,7 @@ def TimesOfFreeDates(date: str, sport: str) -> list:
     with connection:
         cursor.execute("SELECT time FROM Schedule WHERE date = :date and sport = :sp and seats IS NOT NULL", ({"date": date, "sp": sport}))
         times = [row[0] for row in cursor.fetchall()]
+        print("AAQWEWEQEQ", times)
         return times
     
 def SeatsofTimesofDateofSport(date: str, sport: str) -> list:
@@ -423,12 +424,12 @@ def UpdateInfAboutUs(fw: str, name: str, lastname: str, lang: str, phonenum: str
         elif phonenum is not None:
             cursor.execute("UPDATE Users SET phone_number = :phonenum WHERE user_id = :id", ({"phonenum": phonenum, "id": id}))
 
-def CheckDate(date: str, sport: str):
+def CheckDate(date: int, sport: str):
     with connection:
         cursor.execute("SELECT COUNT(*) FROM Schedule WHERE sport = :sport and date = :date", ({"sport": sport, "date": date}))
         return cursor.fetchone()[0]
     
-def CheckTime(dt: str, sp: str, tm: str):
+def CheckTime(dt: str, sp: str, tm: int):
     with connection:
         cursor.execute("SELECT COUNT(*) FROM Schedule WHERE sport = :sp and date = :dt and time = :tm", ({"sp": sp, "dt": dt, "tm": tm}))
         res = cursor.fetchone()[0]
@@ -438,3 +439,9 @@ def CheckUser(id: int):
     with connection:
         cursor.execute("SELECT COUNT(*) FROM Users WHERE user_id = :id", ({"id": id}))
         return cursor.fetchone()[0]
+
+def FindDates():
+    with connection:
+        cursor.execute("SELECT COUNT(*) FROM Schedule")
+        return cursor.fetchone()[0]
+    

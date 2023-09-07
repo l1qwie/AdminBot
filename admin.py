@@ -23,8 +23,8 @@ class Admin:
     username: str
     act: str
     sport_check_users: str
-    date_check_users: str
-    time_check_users: str
+    date_check_users: int
+    time_check_users: int
     user_id_check_users: int
     fromwhere_new_user: str
     name_new_user: str
@@ -32,12 +32,12 @@ class Admin:
     language_new_user: str
     phonenum_new_user: str
     sport_schedule: str
-    date_schedule: str
-    time_schedule: str
+    date_schedule: int
+    time_schedule: int
     seats_schedule: int
     sport_reg_ad_us: str
-    date_reg_ad_us: str
-    time_reg_ad_us: str
+    date_reg_ad_us: int
+    time_reg_ad_us: int
     seats_reg_ad_us: int
     payment_reg_ad_us: str
     user_id_change_user: int
@@ -59,7 +59,16 @@ LEVEL5 = 5
 def DispatchPhrase (id: int, phrase: str):
     a = RetrieveAdmin(id)
     print('level =', a.level, 'phrase =', phrase, 'action =', a.act)
-    if a.act == "registation":
+    if phrase == "MainMenu" or phrase == "/menu":
+        text = "Главное меню"
+        kbd = nav.MenuOptions
+        prmode = None
+        halt = None
+        a.level = OPTIONS
+        a.act = None
+        spreadsheet = None
+        fixed = None
+    elif a.act == "registation":
        (text, kbd, prmode, halt, spreadsheet, fixed) = REG(a, id, phrase)
     elif a.act == "create new user":
         (text, kbd, prmode, halt, spreadsheet, fixed) = CreateNewUser(a, id, phrase)
@@ -74,7 +83,6 @@ def DispatchPhrase (id: int, phrase: str):
     elif a.act == "divarication":
         if phrase in ('Узнать кто записался', 'Настроить расписание', 'Создать нового пользователя', 'Зарегестрировать пользователя', 'Настроить пользователя', 'Отчет'):
             if a.level == OPTIONS:
-                print("hello")
                 (text, kbd, prmode, halt, spreadsheet, fixed) = MenuOptions(a, id, phrase)
         else:
             text = "!!!СЕЙЧАС Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!!!"
@@ -85,15 +93,6 @@ def DispatchPhrase (id: int, phrase: str):
             a.act = "divarication"
             spreadsheet = None
             fixed = None
-    elif phrase == "MainMenu" or phrase == "/menu":
-        text = "Главное меню"
-        kbd = nav.MenuOptions
-        prmode = None
-        halt = None
-        a.level = OPTIONS
-        a.act = None
-        spreadsheet = None
-        fixed = None
     RetainAdmin(a)
     print("a.act =", a.act)
     print("TEXT =", text)
@@ -172,37 +171,97 @@ def ChangeUsers(a: Admin, id: int, phrase: str):
 def RegistiredAdminUser(a: Admin, id: int, phrase: str):
     halt = False
     if a.level == START:
-        days = database.AllFreeDates(phrase)
-        if days == []:
-            text = "В расписании нет дат на этот вид спорта\nВыберите другой или создайте новоую игру"
+        if phrase in ("volleyball", "football"):
+            schedule = database.FindDates()
+            if schedule == 0:
+                text = "Нет ни одной добавленной игры в расписании! Добавьте сначала игру в расписание, а уже потом регестрируйте пользователя\n\n\nГлавное меню"
+                kbd = nav.MenuOptions
+                a.act = "divarication"
+                a.level = OPTIONS
+            else:
+                days = database.AllFreeDates(phrase)
+                if days == []:
+                    text = "В расписании нет дат на этот вид спорта\nВыберите другой вид спорта или создайте новоую игру"
+                    kbd = nav.MenuSports
+                else:
+                    a.sport_reg_ad_us = phrase
+                    text = "Выберете дату:"
+                    kbd = nav.kbdata(database.AllFreeDates(phrase))
+                    a.level = LEVEL1
+        else:
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите вид спрота"
             kbd = nav.MenuSports
-        else:
-            a.sport_reg_ad_us = phrase
-            text = "Выберете дату:"
-            kbd = nav.kbdata(database.AllFreeDates(phrase))
-            a.level = LEVEL1
     elif a.level == LEVEL1:
-        times = database.TimesOfFreeDates(phrase, a.sport_reg_ad_us)
-        seats = database.SeatsofTimesofDateofSport(phrase, a.sport_reg_ad_us)
-        a.date_reg_ad_us = phrase
-        text = "Выберите время проведения игры"
-        kbd = nav.kbtime(times, seats)
-        a.level = LEVEL2
-    elif a.level == LEVEL2:
-        a.time_reg_ad_us = phrase
-        text = "Выберите или введите желаемое количетсво мест"
-        kbd = nav.FrequentChoice
-        a.level = LEVEL3
-    elif a.level == LEVEL3:
-        halt = SeatsCheck(id, phrase)
+        days = database.AllFreeDates(a.sport_reg_ad_us)
+        list_for_comparison_dates = []
+        for row in days:
+            error, dateschedule = DateCheck(row)
+            list_for_comparison_dates.append(dateschedule)
+        halt, date = DateCheck(phrase)
         if halt == True:
-            a.seats_reg_ad_us = phrase
-            text = "Выберите способ оплаты"
-            kbd = nav.KbPay
-            a.level = LEVEL4
+            i = 0
+            while i < len(list_for_comparison_dates):
+                if date == list_for_comparison_dates[i]:
+                    already = True
+                    i = len(list_for_comparison_dates)
+                else:
+                    already = False
+                i += 1
         else:
-            text = "Вы ввели не цифру или же вы ввели цифру котороая больше чем свободныйх мест на эту игру"
-            kbd = None
+            already = False
+        if already is not True:
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите дату"
+            kbd = nav.kbdata(database.AllFreeDates(a.sport_reg_ad_us))
+        else:
+            times = database.TimesOfFreeDates(phrase, a.sport_reg_ad_us)
+            seats = database.SeatsofTimesofDateofSport(phrase, a.sport_reg_ad_us)
+            a.date_reg_ad_us = dateschedule
+            text = "Выберите время проведения игры"
+            kbd = nav.kbtime(times, seats)
+            a.level = LEVEL2
+    elif a.level == LEVEL2:
+        print("potantional error:", a.sport_reg_ad_us, a.date_reg_ad_us)
+        times = database.TimesOfFreeDates(a.date_reg_ad_us, a.sport_reg_ad_us)
+        print(times)
+        halt, timeschedule = TimeCheck(phrase, a.date_reg_ad_us)
+        list_for_comparison_times = []
+        for row in times:
+            error, dateschedule = TimeCheck(row, a.date_reg_ad_us)
+            list_for_comparison_times.append(dateschedule)
+        if halt == True:
+            i = 0
+            while i < len(list_for_comparison_times):
+                if timeschedule == list_for_comparison_times[i]:
+                    compare = True
+                    i = len(list_for_comparison_times)
+                else:
+                    compare = False
+                i += 1
+        else:
+            compare = False
+        if compare is not True:
+            seats = database.SeatsofTimesofDateofSport(a.date_reg_ad_us, a.sport_reg_ad_us)
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите время проведения игры"
+            kbd = nav.kbtime(times, seats)
+        else:
+            a.time_reg_ad_us = timeschedule
+            text = "Выберите или введите желаемое количетсво мест"
+            kbd = nav.FrequentChoice
+            a.level = LEVEL3
+    elif a.level == LEVEL3:
+        print("potantional error:", a.sport_reg_ad_us, a.date_reg_ad_us, a.time_reg_ad_us)
+        if IntCheck(phrase):
+            if SeatsCheck(id, phrase):
+                a.seats_reg_ad_us = phrase
+                text = "Выберите способ оплаты"
+                kbd = nav.KbPay
+                a.level = LEVEL4
+            else:
+                text = "Вы ввели не цифру или же вы ввели цифру котороая больше чем свободныйх мест на эту игру\n\n\nВыберите или введите желаемое количетсво мест"
+                kbd = nav.FrequentChoice
+        else:
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите или введите желаемое количетсво мест"
+            kbd = nav.FrequentChoice
     elif a.level == LEVEL4:
             (names_users, id_users) = database.AllUsers()
             a.payment_reg_ad_us = phrase
@@ -229,55 +288,119 @@ def ViewWhoReg(a: Admin, id: int, phrase: str):
     if a.level == START:
         prmode = None
         if phrase in ("volleyball", "football"):
-            days = database.GamesWithUsers(phrase)
-            if days == []:
-                text = "Никого нет\nВыберите вид спорта:"
-                kbd = nav.MenuSports
+            days_db = database.GamesWithUsers(phrase)
+            days_ready = []
+            db = 0
             if database.Nobody() == True:
                 text = "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\n\nВозвращаю вас в главное меню"
                 kbd = nav.MenuOptions
                 a.level = OPTIONS
                 a.act = "divarication"
-            else:
+            elif days_db != []:
+                while db < len(days_db):
+                    year = days_db[db]//10000
+                    month = (days_db[db]-(year*10000))//100
+                    day = (days_db[db]-(year*10000)-(month*100))//1
+                    date_str = f"{day}-{month}-{year}"
+                    days_ready.append(date_str)
+                    db += 1
                 a.sport_check_users = phrase
                 text = "Выберите дату:"
-                kbd = nav.kbdata(days)
+                kbd = nav.kbdata(days_ready)
                 a.level = LEVEL1
+            else:
+                text = "Никого нет\nВыберите вид спорта:"
+                kbd = nav.MenuSports
         else:
             text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите вид спорта"
             kbd = nav.MenuSports
     elif a.level == LEVEL1:
         prmode = None
-        if database.CheckDate(phrase, a.sport_check_users) != 0:
-            (times, seats) = database.TimeOfGamesWithUsers(a.id, phrase)
-            if times == []:
-                text = "Почему-то тут никого нет\nВозвращаю вас в главное меню"
-                kbd = nav.MenuOptions
-                a.level = START
-                a.act = "divarication"
-                database.Action(id, a.act)
+        halt, date = DateCheck(phrase)
+        print("DATE =", date, "HALT =", halt)
+        print("FAKE", database.CheckDate(date, a.sport_check_users))
+        if halt is True:
+            if database.CheckDate(date, a.sport_check_users) != 0:
+                (times, seats) = database.TimeOfGamesWithUsers(a.id, date)
+                if times != []:
+                    times_ready = []
+                    tm = 0
+                    while tm < len(times):
+                        hour = times[tm]//100
+                        minute = (times[tm]-(hour*100))//1
+                        time_str = f"{hour}:{minute}"
+                        times_ready.append(time_str)
+                        tm += 1
+                    a.date_check_users = date
+                    text = "Выберите время проведения игры:"
+                    kbd = nav.kbtime(time_str, seats)
+                    a.level = LEVEL2
+                else:
+                    text = "Почему-то тут никого нет\nВозвращаю вас в главное меню"
+                    kbd = nav.MenuOptions
+                    a.level = START
+                    a.act = "divarication"
+                    #database.Action(id, a.act)
             else:
-                a.date_check_users = phrase
-                text = "Выберите время проведения игры:"
-                kbd = nav.kbtime(times, seats)
-                a.level = LEVEL2
+                text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
+                db = 0
+                days_ready = []
+                days_db = database.GamesWithUsers(a.sport_check_users)
+                while db < len(days_db):
+                    year = days_db[db]//10000
+                    month = (days_db[db]-(year*10000))//100
+                    day = (days_db[db]-(year*10000)-(month*100))//1
+                    date_str = f"{day}-{month}-{year}"
+                    days_ready.append(date_str)
+                    db += 1
+                    kbd = nav.kbdata(days_ready)
         else:
             text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
-            days = database.GamesWithUsers(a.sport_check_users)
-            kbd = nav.kbdata(days)
+            db = 0
+            days_ready = []
+            days_db = database.GamesWithUsers(a.sport_check_users)
+            while db < len(days_db):
+                year = days_db[db]//10000
+                month = (days_db[db]-(year*10000))//100
+                day = (days_db[db]-(year*10000)-(month*100))//1
+                date_str = f"{day}-{month}-{year}"
+                days_ready.append(date_str)
+                db += 1
+                kbd = nav.kbdata(days_ready)
     elif a.level == LEVEL2:
         prmode = None
-        kk = [a.sport_check_users, a.date_check_users, phrase]
-        print(kk)
-        if database.CheckTime(a.date_check_users, a.sport_check_users, phrase) != 0:
-            a.time_check_users = phrase
-            (name_users, id_users) = database.UsersOfGamesWithUsers(id, phrase)
-            text = f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
-            kbd = nav.kbnames(name_users, id_users)
-            a.level = LEVEL3
+        halt, time = TimeCheck(phrase, a.date_check_users)
+        print("TIME =", time)
+        if halt is True:
+            if database.CheckTime(a.date_check_users, a.sport_check_users, time) != 0:
+                a.time_check_users = time
+                (name_users, id_users) = database.UsersOfGamesWithUsers(id, time)
+                text = f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
+                kbd = nav.kbnames(name_users, id_users)
+                a.level = LEVEL3
+            else:
+                text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
+                (times, seats) = database.TimeOfGamesWithUsers(a.id, a.date_check_users)
+                times_ready = []
+                tm = 0
+                while tm < len(times):
+                    hour = times[tm]//100
+                    minute = (times[tm]-(hour*100))//1
+                    time_str = f"{hour}:{minute}"
+                    times_ready.append(time_str)
+                    tm += 1
+                kbd = nav.kbtime(times, seats)
         else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите время"
+            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
             (times, seats) = database.TimeOfGamesWithUsers(a.id, a.date_check_users)
+            times_ready = []
+            tm = 0
+            while tm < len(times):
+                hour = times[tm]//100
+                minute = (times[tm]-(hour*100))//1
+                time_str = f"{hour}:{minute}"
+                times_ready.append(time_str)
+                tm += 1
             kbd = nav.kbtime(times, seats)
     elif a.level == LEVEL3:
         prmode = None
@@ -313,7 +436,6 @@ def ViewWhoReg(a: Admin, id: int, phrase: str):
             kbd = nav.BackorMenu
     spreadsheet = None
     fixed = None
-    print("TEXT =", text)
     return (text, kbd, prmode, halt, spreadsheet, fixed)
 
 def ChangeSchedule(a: Admin, id: int, phrase: str):
@@ -327,8 +449,9 @@ def ChangeSchedule(a: Admin, id: int, phrase: str):
             text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nВыбрите вид спорта"
             kbd = nav.MenuSports
     elif a.level == LEVEL1:
-        if DateCheck(phrase) == True:
-            a.date_schedule = phrase
+        halt, date = DateCheck(phrase)
+        if halt == True:
+            a.date_schedule = date
             text = "Напишите время проведения игры в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел"
             kbd = None
             a.level = LEVEL2
@@ -336,7 +459,7 @@ def ChangeSchedule(a: Admin, id: int, phrase: str):
             text = "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату\n\n\nОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел"
             kbd = None
     elif a.level == LEVEL2:
-        halt, time = TimeCheck(phrase)
+        halt, time = TimeCheck(phrase, a.date_schedule)
         if halt == True:
             a.time_schedule = time
             text = "Напишите количетсво мест \n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)"
@@ -347,7 +470,6 @@ def ChangeSchedule(a: Admin, id: int, phrase: str):
             kbd = None
     elif a.level == LEVEL3:
         if IntCheck(phrase) == True:
-            print("але, да")
             a.seats_schedule = phrase
             text = "Расписание успешно обновлено\nДобро пожаловать в главное меню"
             kbd = nav.MenuOptions
@@ -483,7 +605,6 @@ def CreateTable():
         html_file.write("</head><body>")
         html_file.write(html_table)
         html_file.write("</body></html>")
-        print("html_file =", html_file)
 
     with open("html.html", "r") as html_file:
         return html_file.read()
@@ -636,53 +757,64 @@ def SeatsCheck(id: int, seat: str) -> bool:
 
 def DateCheck(date_click) -> bool:
     if isinstance(date_click, str):
-        halt = DateCheck2(date_click)
+        halt, date  = DateCheck2(date_click)
     else:
         new_date_click = str(date_click)
-        halt = DateCheck2(new_date_click)
-    return halt
+        halt, date = DateCheck2(new_date_click)
+    return halt, date
 
 
 def DateCheck2(date_click: str):
+    date = None
     if re.findall(r'\d{1,2}[^0-9]+\d{1,2}[^0-9]+\d{4}', date_click):
         date_pattern = r'\d{1,2}[^0-9]+\d{1,2}[^0-9]+\d{4}'
         match = re.search(date_pattern, date_click)
         if match:
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
             date_match = match.group(0)
             components = re.findall(r'\d+', date_match)
             day, month, year = map(int, components)
-            halt = DateCheck3(day,month, year)
+            print(day, month, year)
+            if ValidDate(day, month, year) and datetime.date(year, month, day) >= datetime.date.today():
+                date = (day*1)+(month*100)+(year*10000)
+                halt = True
+            else:
+                print("дада я тут")
+                halt = False
         else:
             halt = False
     else:
         halt = False
-    return halt
+    return halt, date
 
 
-def DateCheck3(day: int, month: int, year: int) -> bool:
+def ValidDate(d: int, m: int, y: int):
     try:
-        date = datetime.date(year, month, day)
-        today = datetime.date.today()
-        if date > today:
-            halt = True
-        else:
-            halt = False
+        _ = datetime.date(y, m, d)
+        res = True
     except:
-        halt = False
-    return halt
+        res = False
+    return res
+
+def TimeCheck(time_click, date) -> bool:
+
+    year = date//10000
+    month = (date-(year*10000))//100
+    day = (date-(year*10000)-(month*100))//1
+    date_str = f"{day}-{month}-{year}"
 
 
-def TimeCheck(time_click) -> bool:
     if isinstance(time_click, str):
-        halt, time = TimeCheck2(time_click)
+        halt, time = TimeCheck2(time_click, date_str)
     else:
         new_time_click= str(time_click)
-        halt, time = TimeCheck2(new_time_click)
+        halt, time = TimeCheck2(new_time_click, date_str)
     return halt, time
 
 
-def TimeCheck2(time_click: str) -> bool:
+def TimeCheck2(time_click: str, date: str):
+    halt = False
+    time = None
+    print("TIME =",time_click, "DATE =", date)
     if re.findall(r'\d{1,2}[^0-9]+\d{1,2}', time_click):
         time_pattern = r'\d{1,2}[^0-9]+\d{1,2}'
         match = re.search(time_pattern, time_click)
@@ -690,24 +822,31 @@ def TimeCheck2(time_click: str) -> bool:
             time_match = match.group(0)
             components = re.findall(r'\d+', time_match)
             hour, minute = map(int, components)
-            halt = TimeCheck3(hour, minute)
-            time = f"{hour}:{minute}"
-            print(time)
+            
+            if re.findall(r'\d{1,2}[^0-9]+\d{1,2}[^0-9]+\d{4}', date):
+                date_pattern = r'\d{1,2}[^0-9]+\d{1,2}[^0-9]+\d{4}'
+                match = re.search(date_pattern, date)
+                if match:
+                    date_match = match.group(0)
+                    components = re.findall(r'\d+', date_match)
+                    day, month, year = map(int, components)
+                    print(hour, minute, day, month, year)
+                    
+                    if ValidTime(hour, minute) and datetime.datetime(year, month, day, hour, minute) > datetime.datetime.now():
+                        halt = True
+                        time = (hour * 100) + minute
         else:
-            print("here")
             halt = False
-            time = None
-    else:
-        halt = False
-        time = None
+    
     return halt, time
 
-def TimeCheck3(hr: int, min: int):
-    if 0 <= hr <= 23 and 0 <= min <= 60:
-        halt = True
-    else:
-        halt = False
-    return halt
+def ValidTime(hr: int, min: int):
+    try:
+        _ = datetime.time(hr, min)
+        res = True
+    except:
+        res = False
+    return res
 
 def IntCheck(mes) -> bool:
     if isinstance(mes, str):
@@ -721,7 +860,6 @@ def IntCheck2(mes: str) -> bool:
     if re.fullmatch(r'^\d{1,2}$', mes):
         halt = True
     else:
-        print("ну почему")
         halt = False
     return halt
 
@@ -788,4 +926,3 @@ def RetainAdmin(a: Admin):
     a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user, a.sport_schedule, a.date_schedule, a.time_schedule, a.seats_schedule, 
     a.sport_reg_ad_us, a.date_reg_ad_us, a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.level, a.id)
     #db.UpdateAdmin(a.id, a.level, a.data_act, a.act)
-    print("1adasd", a.act)
