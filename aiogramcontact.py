@@ -49,7 +49,7 @@ async def VecCallBack(query: types.CallbackQuery):
         await bot.delete_message(chat_id=query.from_user.id, message_id=prev)
     print(query.data)
     (text, kbd, prmode, halt, spreadsheet, fixed) = DispatchPhrase(query.from_user.id, query.data)
-    if text is not None:
+    if spreadsheet is None:
         reply = await bot.send_message(query.from_user.id, text=text, reply_markup=kbd, parse_mode=prmode)
         if fixed is not None:
             await bot.pin_chat_message(query.from_user.id, message_id=reply.message_id)

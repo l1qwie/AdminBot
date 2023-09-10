@@ -124,3 +124,23 @@ class TestDB:
         with self.connection:
             self.cursor.execute("SELECT date_schedule FROM Admins WHERE user_id = ?", (id,))
             return self.cursor.fetchone()[0]
+    
+    def SeltimeView(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT time_check_users FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+        
+    def SelActSch(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT act_schedule FRON Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+            
+    def SelNitifGameId(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT gid_notification FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]
+    
+    def SelUsId(self, id: int):
+        with self.connection:
+            self.cursor.execute("SELECT uid_notification FROM Admins WHERE user_id = ?", (id,))
+            return self.cursor.fetchone()[0]

@@ -131,6 +131,8 @@ def RetainAdmin(id: int, name: str, surname: str,
                 lastname_new_user: str,
                 language_new_user: str,
                 phonenum_new_user: str,
+                act_schedule: str,
+                game_id_schedule: int,
                 sport_schedule: str,
                 date_schedule: int,
                 time_schedule: int,
@@ -142,16 +144,19 @@ def RetainAdmin(id: int, name: str, surname: str,
                 payment_reg_ad_us: str,
                 user_id_change_user: str,
                 action_change_user: str,
+                gid_notification: int,
+                uid_notification: int,
                 level: int,
                 uid: int):
     with connection:
         cursor.execute("""UPDATE Admins SET user_id = ?, name = ?, last_name = ?, username = ?, action = ?, sport_check_users = ?, date_check_users = ?, time_check_users = ?, user_id_check_users = ?,
                             fromwhere_new_user = ?, name_new_user = ?, lastname_new_user = ?, language_new_user = ?, phonenum_new_user = ?, 
-                            sport_schedule = ?, date_schedule = ?, time_schedule = ?, seats_schedule = ?, sport_reg_ad_us = ?, date_reg_ad_us = ?, time_reg_ad_us = ?, seats_reg_ad_us = ?, payment_reg_ad_us = ?, 
-                            user_id_change_user = ?, action_change_user = ?,level = ? WHERE user_id = ?""", 
+                            act_schedule = ?, game_id_schedule = ?, sport_schedule = ?, date_schedule = ?, time_schedule = ?, seats_schedule = ?, sport_reg_ad_us = ?, date_reg_ad_us = ?, time_reg_ad_us = ?, seats_reg_ad_us = ?, payment_reg_ad_us = ?, 
+                            user_id_change_user = ?, action_change_user = ?, gid_notification = ?, uid_notification = ?, level = ? WHERE user_id = ?""", 
                             (id, name, surname, username, act, sport_check_users, date_check_users, time_check_users, user_id_check_users,
-                                fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule,
-                                date_schedule, time_schedule, seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level, uid))
+                                fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule,
+                                date_schedule, time_schedule, seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, 
+                                gid_notification, uid_notification, level, uid))
 
 def SelAction(id: int) -> str:
     with connection:
@@ -254,14 +259,14 @@ def RecallAdmin(id: int):
         else:
             res = int(level[0])
         cursor.execute("""SELECT user_id, name, last_name, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
-                                fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule, date_schedule, time_schedule,
-                                seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level FROM Admins WHERE user_id = :id""", ({"id": id}))
+                                fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule sport_schedule, date_schedule, time_schedule,
+                                seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, level FROM Admins WHERE user_id = :id""", ({"id": id}))
         (user_id, name, surname, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
-        fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule, date_schedule, time_schedule,
-        seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level) = cursor.fetchone()
+        fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule, date_schedule, time_schedule,
+        seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, level) = cursor.fetchone()
         return (user_id, name, surname, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
-        fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, sport_schedule, date_schedule, time_schedule, seats_schedule,
-        sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, level)
+        fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule, date_schedule, time_schedule, seats_schedule,
+        sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, level)
         
         self.cursor.execute("SELECT action FROM admins WHERE user_id = ?", (id,))
         act = self.cursor.fetchone()[0]
@@ -334,7 +339,6 @@ def TimesOfFreeDates(date: str, sport: str) -> list:
     with connection:
         cursor.execute("SELECT time FROM Schedule WHERE date = :date and sport = :sp and seats IS NOT NULL", ({"date": date, "sp": sport}))
         times = [row[0] for row in cursor.fetchall()]
-        print("AAQWEWEQEQ", times)
         return times
     
 def SeatsofTimesofDateofSport(date: str, sport: str) -> list:
@@ -353,9 +357,32 @@ def AllUsers() -> list:
         users_id = [row[0] for row in cursor.fetchall()]
         namesurname = [(x, y) for x, y in zip(names, last_names)]
 
-        print("WARNING BROOOOOOOOO!!!!!",namesurname,users_id)
         return namesurname, users_id
     
+def AdminUsers() -> list:
+    with connection:
+        cursor.execute("SELECT name FROM Users WHERE setup_reg IS NOT 'DELETE' and username IS NULL")
+        names = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT last_name FROM Users WHERE setup_reg IS NOT 'DELETE' and username IS NULL")
+        last_names = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT user_id FROM Users WHERE setup_reg IS NOT 'DELETE' and username IS NULL")
+        users_id = [row[0] for row in cursor.fetchall()]
+        namesurname = [(x, y) for x, y in zip(names, last_names)]
+
+        return namesurname, users_id
+    
+def SelPersonWhoNeedsNotif(gid: int) -> list:
+    with connection:
+        cursor.execute("SELECT name FROM Users JOIN WaitingForNotification ON WaitingForNotification.user_id = Users.user_id WHERE WaitingForNotification.game_id = :gid", ({"gid": gid}))
+        names = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT last_name FROM Users JOIN WaitingForNotification ON WaitingForNotification.user_id = Users.user_id WHERE WaitingForNotification.game_id = :gid", ({"gid": gid}))
+        last_names = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT user_id FROM Users JOIN WaitingForNotification ON WaitingForNotification.user_id = Users.user_id WHERE WaitingForNotification.game_id = :gid", ({"gid": gid}))
+        users_id = [row[0] for row in cursor.fetchall()]
+        namesurname = [(x, y) for x, y in zip(names, last_names)]
+        return namesurname, users_id
+
+
 def DelRegAdUs(adid: int, uid: int):
     with connection:
         cursor.execute("""
@@ -406,7 +433,7 @@ def DelUs(id: int):
 
 def CreateTable():
     with connection:
-        cursor.execute("SELECT sport, date, time, seats FROM Schedule")
+        cursor.execute("SELECT game_id, sport, date, time, seats FROM Schedule")
         data = cursor.fetchall()
         return data
     
@@ -415,7 +442,6 @@ def UpdateInfAboutUs(fw: str, name: str, lastname: str, lang: str, phonenum: str
         if fw is not None:
             cursor.execute("UPDATE Users SET from_where = :fw WHERE user_id = :id", ({"fw": fw, "id": id}))
         elif name is not None:
-            print("dude", id)
             cursor.execute("UPDATE Users SET name = :name WHERE user_id = :id", ({"name": name, "id": id}))
         elif lastname is not None:
             cursor.execute("UPDATE Users SET last_name = :lastname WHERE user_id = :id", ({"lastname": lastname, "id": id}))
@@ -445,3 +471,25 @@ def FindDates():
         cursor.execute("SELECT COUNT(*) FROM Schedule")
         return cursor.fetchone()[0]
     
+def SelAllUid():
+    with connection:
+        cursor.execute("SELECT user_id FROM Users WHERE setup_reg IS NOT 'DELETE'")
+        all_uid = [row[0] for row in cursor.fetchall()]
+        return all_uid
+    
+def SelAdmUs():
+    with connection:
+        cursor.execute("SELECT user_id FROM Users WHERE setup_reg IS NOT 'DELETE' and username IS NULL")
+        all_uid = [row[0] for row in cursor.fetchall()]
+        return all_uid
+
+def SelUsWhoNeedNotif(gid: int):
+    with connection:
+        cursor.execute("SELECT user_id FROM WaitingForNotification WHERE game_id = ?", (gid,))
+        uidnotif = [row[0] for row in cursor.fetchall()]
+        return uidnotif
+    
+def CountUsWhoNeedNotif(gid: int):
+    with connection:
+        cursor.execute("SELECT COUNT(*) FROM WaitingForNotification WHERE game_id = ?", (gid,))
+        return cursor.fetchone()[0]

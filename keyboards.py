@@ -62,7 +62,7 @@ def kbdata(days):
 def kbtime(times, seats):
     keyboard = []
     for count, item in zip(times, seats):
-        button = InlineKeyboardButton(text=f"{count}({item} мест)", callback_data=f"{count}")
+        button = InlineKeyboardButton(text=f"{count}  ({item} мест)", callback_data=f"{count}")
         keyboard.append([button])
 
     inkb2 = InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -99,6 +99,23 @@ KbPay = InlineKeyboardMarkup(inline_keyboard=[
 
 WatNext = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="В главное меню", callback_data="MainMenu")]])
 
+SetSchedule = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Добавить новую игру", callback_data="new")],
+    [InlineKeyboardButton(text="Редактировать игру", callback_data="setSche")],
+    [InlineKeyboardButton(text="Удалить игру", callback_data="delSche")]
+])
+
+
+Notif = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Уведомлен", callback_data="Notif completed")],
+    [InlineKeyboardButton(text="Уведомлю позже", callback_data="Notif later")],
+    [InlineKeyboardButton(text="В главное меню", callback_data="MainMenu")]
+])
+
+UserDecision = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="Решил(а) остаться",  callback_data="user wait")],
+    [InlineKeyboardButton(text="Отменил(а) запись на игру", callback_data="user not wait")]
+])
 
 #3
 btnin = InlineKeyboardButton(text='Пн', callback_data="Пн")
