@@ -46,6 +46,7 @@ class Admin:
     action_change_user: str
     gid_notification: int
     uid_notification: int
+    condition_notification: str
     level: int
 
 
@@ -84,8 +85,12 @@ def DispatchPhrase (id: int, phrase: str):
         (text, kbd, prmode, halt, spreadsheet, fixed) = RegistiredAdminUser(a, id, phrase)
     elif a.act == "сhange user":
         (text, kbd, prmode, halt, spreadsheet, fixed) = ChangeUsers(a, id, phrase)
+    elif a.act == "notify the user":
+        (text, kbd, prmode, halt, spreadsheet, fixed) = Notification(a, id, phrase)
+    elif a.act == "report table":
+        (text, kbd, prmode, halt, spreadsheet, fixed) = HTMLTable()
     elif a.act == "divarication":
-        if phrase in ('Узнать кто записался', 'Настроить расписание', 'Создать нового пользователя', 'Зарегестрировать пользователя', 'Настроить пользователя', 'Отчет'):
+        if phrase in ('Узнать кто записался', 'Настроить расписание', 'Создать нового пользователя', 'Зарегестрировать пользователя', 'Настроить пользователя', 'Отчет', 'notification'):
             if a.level == OPTIONS:
                 (text, kbd, prmode, halt, spreadsheet, fixed) = MenuOptions(a, id, phrase)
         else:
@@ -98,518 +103,760 @@ def DispatchPhrase (id: int, phrase: str):
             spreadsheet = None
             fixed = None
     RetainAdmin(a)
-    print("a.act =", a.act)
     print("TEXT =", text)
     return (text, kbd, prmode, halt, spreadsheet, fixed)
 
 
-def ChangeUsers(a: Admin, id: int, phrase: str):
-    if a.level == START:
-        if phrase in ("setuser", "deluser"):
-            (names_users, id_users) = database.AllUsers()
-            text = "Выберите пользователя"
-            kbd = nav.kbnames(names_users, id_users)
-            a.level = LEVEL1
-            a.action_change_user = phrase
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите действие"
-            kbd = nav.Do
-    elif a.level == LEVEL1:
-        if IDCheck(phrase):
-            if a.action_change_user == "setuser":
-                (names_users, id_users) = database.AllUsers()
-                text = "Выберите что вы хотите изменить"
-                kbd = nav.Enumeration
-                a.level = LEVEL2
-                a.user_id_change_user = phrase
-            elif a.action_change_user == "deluser":
-                database.DelUs(int(phrase))
-                text = "Пользователь удален. Все данные, все регистрации, вообще вся информация, которая могла быть в боте, благополучно удалена\n\n\nВозвращаю вас в главное меню"
-                kbd = nav.MenuOptions
-                a.level = OPTIONS
-                a.act = "divarication"
-        else:
-            print("ЯЯЯЯЯЯЯЯЯЯЯ ТТТТТТТТТТУУУУУУУУУУУУУУУУУУУУТ")
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите пользователя"
-            (names_users, id_users) = database.AllUsers()
-            kbd = nav.kbnames(names_users, id_users)
-    elif a.level == LEVEL2:
-        if phrase in ("fronwhere", "name", "lastname", "language", "phonenum"):
-            if phrase == "fronwhere":
-                a.fromwhere_new_user = "nextaction"
-                text = "Выберите откуда пользователь"
-                kbd = nav.MenuFrom
-            elif phrase == "name":
-                a.name_new_user = "nextaction"
-                text = "Напишите имя"
-                kbd = None
-            elif phrase == "lastname":
-                a.lastname_new_user = "nextaction"
-                text = "Напишите фамилию"
-                kbd = None
-            elif phrase == "language":
-                a.language_new_user = "nextaction"
-                text = "Напишите предпочитаемый язык"
-                kbd = None
-            elif phrase == "phonenum":
-                a.phonenum_new_user = "nextaction"
-                text = "Напишите номер телефона"
-                kbd = None
-            a.level = LEVEL3
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите что вы хотите изменить"
-            kbd = nav.Enumeration
-    elif a.level == LEVEL3:
-        if "nextaction" in (a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user):
-            if a.fromwhere_new_user == "nextaction":
-                a.fromwhere_new_user = phrase
-                text = "Месенджер пользователя измененен"
-            elif a.name_new_user == "nextaction":
-                a.name_new_user = phrase
-                text = "Имя изменено"
-            elif a.lastname_new_user == "nextaction":
-                a.lastname_new_user = phrase
-                text = "Фамилия изменена"
-            elif a.language_new_user == "nextaction":
-                a.language_new_user = phrase
-                text = "Язык изменен"
-            elif a.phonenum_new_user == "nextaction":
-                a.phonenum_new_user = phrase
-                text = "Телефон изменен"
-            a.level = LEVEL2
-            kbd = nav.Enumeration
-            database.UpdateInfAboutUs(a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user, a.user_id_change_user)
-        else:
-            text = "Возникла каккая то непредвиденная ошибка, если она повториться - сообщите разработкику"
-            a.act = "divarication"
-            a.level = OPTIONS
-            kbd = nav.MenuOptions
+def HTMLTable():
+    text = None
+    kbd = nav.WatNext
     prmode = None
     halt = None
+    fixed = None
+    spreadsheet = CreateTable()
+    return text, kbd, prmode, halt, spreadsheet, fixed
+
+
+def Notification(a: Admin, id: int, phrase: str):
+    halt = None
+    prmode = None
     spreadsheet = None
     fixed = None
+    text = None
+    kbd = None
+    if a.level == START:
+        text, kbd = NotificationStart(a, phrase)
+    elif a.level == LEVEL1:
+        if a.condition_notification == "DELETE":
+            text, kbd = NotificationDel(a, phrase)
+        else:
+            text, kbd = NotificationLevel1(a, phrase)
+    elif a.level == LEVEL2:
+        text, kbd = NotificationLevel2(a, phrase)
     return (text, kbd, prmode, halt, spreadsheet, fixed)
+
+
+def NotificationStart(a: Admin, phrase: str):
+    if IDNotifCheck(a.id, phrase):
+        a.uid_notification = phrase
+        (name, last_name, language, phone_number) = database.InfOfUser(int(phrase))
+        (game_id, sport, date, time, status) = database.InfAboutGameofUser(int(phrase))
+        a.gid_notification = game_id
+        a.condition_notification = status
+        if status == "DELETE":
+            text = f"""Вот информация по этому пользователю:
+- Имя: {name}
+- Фамилия(если есть): {last_name}
+- Предпочтительный язык: {language}
+- Номер телефона(если был указан): {phone_number}
+
+
+
+Информация об игре, которую вы редактировали или удалили, а у этого пользователя была запись на эту игру (это уже измененные данные):
+- Вид спорта: {sport}
+- Дата: {date}
+- Время: {time}
+- Состояние: {status}
+
+Как только вы уведомите этого пользователя об изменеиях в расписании, то нажмите на кнопку 'Уведомлен', но так же
+вы можите спокойно пойти и заниматься чем угодно другим, а бот напомнит вам об этом чуть позже. Так как это удаленная игра,
+то никаких дальнейших к вам вопросов по поводу пользователя не будет."""
+        else:
+            text = f"""Вот информация по этому пользователю:
+- Имя: {name}
+- Фамилия(если есть): {last_name}
+- Предпочтительный язык: {language}
+- Номер телефона(если был указан): {phone_number}
+
+
+
+Информация об игре, которую вы редактировали или удалили, а у этого пользователя была запись на эту игру (это уже измененные данные):
+- Вид спорта: {sport}
+- Дата: {date}
+- Время: {time}
+- Состояние: {status}
+
+Как только вы уведомите этого пользователя об изменеиях в расписании, то нажмите на кнопку 'Уведомлен', но так же
+вы можите спокойно пойти и заниматься чем угодно другим, а бот напомнит вам об этом чуть позже.
+
+
+Как только вы уведомите этого пользователя об изменеиях в расписании, то нажмите на кнопку 'Уведомлен', но так же
+вы можите спокойно пойти и заниматься чем угодно другим, а бот напомнит вам об этом чуть позже. 
+Дальше я задам вам следующий вопрос: решил ли остаться пользователь на этой игре (уже измененной) или же отменил запись? 
+Так что рекомендую задать этот же вопрос пользователю."""
+        kbd = nav.Notif
+        a.level = LEVEL1
+    else:
+        names, id_user = database.WhoNeedNotif(a.id)
+        text = "Я жду от вас нажатия на кнопку.\n\n\nВыберите пользователя."
+        kbd = nav.kbnames(names, id_user)
+    return text, kbd
+
+def NotificationLevel1(a: Admin, phrase: str):
+    if phrase == "Notif completed":
+        text = "Что выбрал пользователь?"
+        kbd = nav.UserDecision
+        a.level = LEVEL2
+    else:
+        text = "Я жду от вас нажатия на кнопку.\n\n\nВыберите действие."
+        kbd = nav.Notif
+    return text, kbd 
+
+def NotificationDel(a: Admin, phrase: str):
+    if phrase == "Notif completed":
+        database.ChangeStatusUser()
+        text = "Прекрасно! Возвращаю вас в Главное Меню"
+        kbd = nav.MenuOptions
+        a.level == OPTIONS
+        a.act == "divarication"
+    else:
+        text = "Я жду от вас нажатия на кнопку.\n\n\nВыберите действие."
+        kbd = nav.Notif
+    return text, kbd
+
+def NotificationLevel2(a: Admin, phrase: str):
+    if phrase in ("user wait", "user not wait"):
+        if phrase == "user wait":
+            database.SetupUs(a.id, "allright")
+            text = "Ура! Пользователь решил оставить запись на эту игру!\n\n\nДобро пожаловать в Главное Меню"
+        elif phrase == "user not wait":
+            database.SetupUs(a.id, "DELETE")
+            database.SeatsBack(a.id)
+            text = "Ну что ж. Жаль. Но ничего не поделаешь\n\n\nДобро пожаловать в Главное Меню"
+        kbd = nav.MenuOptions
+        a.level = OPTIONS
+        a.act = "divarication"
+    else:
+        text = "Я жду от вас нажатия на кнопку.\n\n\nЧто выбрал пользователь?"
+        kbd = nav.UserDecision
+    return text, kbd
+        
+
+
+def ChangeUsers(a: Admin, id: int, phrase: str):
+    halt = None
+    prmode = None
+    spreadsheet = None
+    fixed = None
+    text = None
+    kbd = None
+    if a.level == START:
+        text, kbd = ChangeUsersStart(a, id, phrase)
+    elif a.level == LEVEL1:
+        text, kbd = ChangeUserslvl1(a, id, phrase)
+    elif a.level == LEVEL2:
+        text, kbd = ChangeUserslvl2(a, id, phrase)
+    elif a.level == LEVEL3:
+        text, kbd = ChangeUserslvl3(a, id, phrase)
+    return (text, kbd, prmode, halt, spreadsheet, fixed)
+
+
+def ChangeUsersStart(a: Admin, id: int, phrase: str):
+    if phrase in ("setuser", "deluser"):
+        (names_users, id_users) = database.AllUsers()
+        text = "Выберите пользователя"
+        kbd = nav.kbnames(names_users, id_users)
+        a.level = LEVEL1
+        a.action_change_user = phrase
+    else:
+        text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите действие"
+        kbd = nav.Do
+    return text, kbd
+
+
+def ChangeUserslvl1(a: Admin, id: int, phrase: str):
+    if IDCheck(phrase):
+        if a.action_change_user == "setuser":
+            (names_users, id_users) = database.AllUsers()
+            text = "Выберите что вы хотите изменить"
+            kbd = nav.Enumeration
+            a.level = LEVEL2
+            a.user_id_change_user = phrase
+        elif a.action_change_user == "deluser":
+            database.DelUs(int(phrase))
+            text = "Пользователь удален. Все данные, все регистрации, вообще вся информация, которая могла быть в боте, благополучно удалена\n\n\nВозвращаю вас в главное меню"
+            kbd = nav.MenuOptions
+            a.level = OPTIONS
+            a.act = "divarication"
+    else:
+        text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите пользователя"
+        (names_users, id_users) = database.AllUsers()
+        kbd = nav.kbnames(names_users, id_users)
+    return text, kbd
+
+
+def ChangeUserslvl2(a: Admin, id: int, phrase: str):
+    if phrase in ("fronwhere", "name", "lastname", "language", "phonenum"):
+        if phrase == "fronwhere":
+            a.fromwhere_new_user = "nextaction"
+            text = "Выберите откуда пользователь"
+            kbd = nav.MenuFrom
+        elif phrase == "name":
+            a.name_new_user = "nextaction"
+            text = "Напишите имя"
+            kbd = None
+        elif phrase == "lastname":
+            a.lastname_new_user = "nextaction"
+            text = "Напишите фамилию"
+            kbd = None
+        elif phrase == "language":
+            a.language_new_user = "nextaction"
+            text = "Напишите предпочитаемый язык"
+            kbd = None
+        elif phrase == "phonenum":
+            a.phonenum_new_user = "nextaction"
+            text = "Напишите номер телефона"
+            kbd = None
+        a.level = LEVEL3
+    else:
+        text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите что вы хотите изменить"
+        kbd = nav.Enumeration
+    return text, kbd
+
+def ChangeUserslvl3(a: Admin, id: int, phrase: str):
+    if "nextaction" in (a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user):
+        if a.fromwhere_new_user == "nextaction":
+            a.fromwhere_new_user = phrase
+            text = "Месенджер пользователя измененен"
+        elif a.name_new_user == "nextaction":
+            a.name_new_user = phrase
+            text = "Имя изменено"
+        elif a.lastname_new_user == "nextaction":
+            a.lastname_new_user = phrase
+            text = "Фамилия изменена"
+        elif a.language_new_user == "nextaction":
+            a.language_new_user = phrase
+            text = "Язык изменен"
+        elif a.phonenum_new_user == "nextaction":
+            a.phonenum_new_user = phrase
+            text = "Телефон изменен"
+        a.level = LEVEL2
+        kbd = nav.Enumeration
+        database.UpdateInfAboutUs(a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user, a.user_id_change_user)
+    else:
+        text = "Возникла каккая то непредвиденная ошибка, если она повториться - сообщите разработкику"
+        a.act = "divarication"
+        a.level = OPTIONS
+        kbd = nav.MenuOptions
+    return text, kbd
             
 
 
 def RegistiredAdminUser(a: Admin, id: int, phrase: str):
-    halt = False
+    halt = None
+    prmode = None
+    spreadsheet = None
+    fixed = None
+    text = None
+    kbd = None
     if a.level == START:
-        if phrase in ("volleyball", "football"):
-            schedule = database.FindDates()
-            if schedule == 0:
-                text = "Нет ни одной добавленной игры в расписании! Добавьте сначала игру в расписание, а уже потом регестрируйте пользователя\n\n\nГлавное меню"
-                kbd = nav.MenuOptions
-                a.act = "divarication"
-                a.level = OPTIONS
-            else:
-                days = database.AllFreeDates(phrase)
-                if days == []:
-                    text = "В расписании нет дат на этот вид спорта\nВыберите другой вид спорта или создайте новоую игру"
-                    kbd = nav.MenuSports
-                else:
-                    a.sport_reg_ad_us = phrase
-                    text = "Выберете дату:"
-                    list_for_dates = []
-                    day = 0
-                    while day < len(days):
-                        year = days[day]//10000
-                        month = (days[day]-(year*10000))//100
-                        day = (days[day]-(year*10000)-(month*100))//1
-                        date_str = f"{day}-{month}-{year}"
-                        list_for_dates.append(date_str)
-                        day += 1
-                    kbd = nav.kbdata(list_for_dates)
-                    a.level = LEVEL1
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\n\nВыберите вид спрота"
-            kbd = nav.MenuSports
+        text, kbd = RegistiredAdminUserStart(a, id, phrase)
     elif a.level == LEVEL1:
-        halt, date = DateCheck(phrase)
-        if halt is not True:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите дату"
-            days = database.AllFreeDates(a.sport_reg_ad_us)
-            list_for_dates = []
-            day = 0
-            while day < len(days):
-                year = days[day]//10000
-                month = (days[day]-(year*10000))//100
-                day = (days[day]-(year*10000)-(month*100))//1
-                date_str = f"{day}-{month}-{year}"
-                list_for_dates.append(date_str)
-                day += 1
-            kbd = nav.kbdata(list_for_dates)
+        text, kbd = RegistiredAdminUserlevel1(a, id, phrase)
+    elif a.level == LEVEL2:
+        text, kbd = RegistiredAdminUserlevel2(a, id, phrase)
+    elif a.level == LEVEL3:
+        text, kbd, halt = RegistiredAdminUserlevel3(a, id, phrase)
+    elif a.level == LEVEL4:
+        text, kbd = RegistiredAdminUserlevel4(a, id, phrase)
+    elif a.level == LEVEL5:
+        text, kbd = RegistiredAdminUserlevel5(a, id, phrase) 
+    return (text, kbd, prmode, halt, spreadsheet, fixed)
+
+
+def RegistiredAdminUserStart(a: Admin, id: int, phrase: str):
+    if phrase in ("volleyball", "football"):
+        schedule = database.FindDates()
+        if schedule == 0:
+            text = "Нет ни одной добавленной игры в расписании! Добавьте сначала игру в расписание, а уже потом зарегистрируйте пользователя. \n\n\nГлавное меню"
+            kbd = nav.MenuOptions
+            a.act = "divarication"
+            a.level = OPTIONS
         else:
-            times = database.TimesOfFreeDates(date, a.sport_reg_ad_us)
+            days = database.AllFreeDates(phrase)
+            if days == []:
+                text = "В расписании нет дат на этот вид спорта. Выберите другой вид спорта или создайте новую игру."
+                kbd = nav.MenuSports
+            else:
+                a.sport_reg_ad_us = phrase
+                text = "Выберите дату:"
+                kbd = nav.kbdata(CreateDateList(days))
+                a.level = LEVEL1
+    else:
+        text = "Я жду от вас нажатия на кнопку.\n\n\nВыберите вид спорта."
+        kbd = nav.MenuSports
+    return text, kbd
+
+def CreateTimeList(time: list) -> list:
+    times_ready = []
+    tm = 0
+    while tm < len(time):
+        hour = time[tm]//100
+        minute = (time[tm]-(hour*100))//1
+        time_str = f"{hour}:{minute}"
+        times_ready.append(time_str)
+        tm += 1
+    return times_ready
+
+def CreateDateList(days: list) -> list:
+    list_for_dates = []
+    dy = 0
+    while dy < len(days):
+        year = days[dy]//10000
+        month = (days[dy]-(year*10000))//100
+        day = (days[dy]-(year*10000)-(month*100))//1
+        date_str = f"{day}-{month}-{year}"
+        list_for_dates.append(date_str)
+        dy += 1
+    return list_for_dates
+
+def RegistiredAdminUserlevel1(a: Admin, id: int, phrase: str):
+    halt, date = DateCheck(phrase)
+    if halt is not True:
+        text = "Я жду от вас нажатия на кнопку.\n\n\nВыберите дату."
+        list_for_dates = CreateDateList(database.AllFreeDates(a.sport_reg_ad_us))
+        kbd = nav.kbdata(list_for_dates)
+    else:
+        if date in (database.AllFreeDates(a.sport_reg_ad_us)):
             seats = database.SeatsofTimesofDateofSport(date, a.sport_reg_ad_us)
             a.date_reg_ad_us = date
             text = "Выберите время проведения игры"
-            times_ready = []
-            tm = 0
-            while tm < len(times):
-                hour = times[tm]//100
-                minute = (times[tm]-(hour*100))//1
-                time_str = f"{hour}:{minute}"
-                times_ready.append(time_str)
-                tm += 1
-            kbd = nav.kbtime(times_ready, seats)
+            kbd = nav.kbtime(CreateTimeList(database.TimesOfFreeDates(date, a.sport_reg_ad_us)), seats)
             a.level = LEVEL2
-    elif a.level == LEVEL2:
-        times = database.TimesOfFreeDates(a.date_reg_ad_us, a.sport_reg_ad_us)
-        halt, timeschedule = TimeCheck(phrase, a.date_reg_ad_us)
-        if halt is True:
-            j = 0
-            while j < len(times):
-                if timeschedule == times[j]:
-                    compare = True
-                    j = len(times)
-                else:
-                    compare = False
-                j += 1
         else:
-            compare = False
-        if compare is not True:
-            seats = database.SeatsofTimesofDateofSport(a.date_reg_ad_us, a.sport_reg_ad_us)
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите время проведения игры"
-            times_ready = []
-            tm = 0
-            while tm < len(times):
-                hour = times[tm]//100
-                minute = (times[tm]-(hour*100))//1
-                time_str = f"{hour}:{minute}"
-                times_ready.append(time_str)
-                tm += 1
-            kbd = nav.kbtime(times_ready, seats)
-        else:
+            text = "Вы выбрали дату, но, к сожалению, это не подходящая дата для вас. Выберите ту, которая показана на кнопках"
+            kbd = nav.kbdata(CreateDateList(database.AllFreeDates(a.sport_reg_ad_us)))
+    return text, kbd
+
+def RegistiredAdminUserlevel2(a: Admin, id: int, phrase: str):
+    times = database.TimesOfFreeDates(a.date_reg_ad_us, a.sport_reg_ad_us)
+    halt, timeschedule = TimeCheck(phrase, a.date_reg_ad_us)
+    seats = database.SeatsofTimesofDateofSport(a.date_reg_ad_us, a.sport_reg_ad_us)
+    if halt is True:
+        if timeschedule in times:
             a.time_reg_ad_us = timeschedule
-            text = "Выберите или введите желаемое количетсво мест"
+            text = "Выберите или введите желаемое количетсво мест."
             kbd = nav.FrequentChoice
             a.level = LEVEL3
-    elif a.level == LEVEL3:
-        if IntCheck(phrase):
-            halt, upd_seats  = SeatsCheck(id, phrase)
-            if halt is True:
-                a.seats_reg_ad_us = int(phrase)
-                text = "Выберите способ оплаты"
-                kbd = nav.KbPay
-                a.level = LEVEL4
-                database.BalanceOfTheUniverse(upd_seats, id)
-            else:
-                text = "Вы ввели не цифру или же вы ввели цифру котороая больше чем свободныйх мест на эту игру\n\n\nВыберите или введите желаемое количетсво мест"
-                kbd = nav.FrequentChoice
         else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите или введите желаемое количетсво мест"
-            kbd = nav.FrequentChoice
-    elif a.level == LEVEL4:
-        if phrase in ("cash", "card"):
-            (names_users, id_users) = database.AllUsers()
-            a.payment_reg_ad_us = phrase
-            text = "Выберите пользователя"
-            kbd = nav.kbnames(names_users, id_users)
-            a.level = LEVEL5
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите способ оплаты"
-            kbd = nav.KbPay
-    elif a.level == LEVEL5:
-        if IDCheck(phrase):
-            RegAdUs(a, phrase)
-            text = "Мои поздравления! Вы зарегестрировали этого пользователя на игру.\nВозвращаю Вас в главное меню"
-            kbd = nav.MenuOptions
-            a.level = OPTIONS
-            a.act = "divarication"
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите пользователя"
-            (names_users, id_users) = database.AllUsers()
-            kbd = nav.kbnames(names_users, id_users)
-    prmode = None
-    spreadsheet = None
-    fixed = None
-    return (text, kbd, prmode, halt, spreadsheet, fixed)
+            text = "Вы прислали мне время, но, к сожалению, это не то время, которое я вам предложил на кнопках. Выберите, пожалуйста, то, что на кнопках."
+            kbd = nav.kbtime(CreateTimeList(times), seats)
+    else:
+        text = "Я жду от вас нажатия на кнопку.\n\n\nВыберите время проведения игры."
+        kbd = nav.kbtime(CreateTimeList(times), seats)
+    return text, kbd
 
-
-
-
-def ViewWhoReg(a: Admin, id: int, phrase: str):
-    halt = False
-    if a.level == START:
-        prmode = None
-        if phrase in ("volleyball", "football"):
-            days_db = database.GamesWithUsers(phrase)
-            days_ready = []
-            db = 0
-            if database.Nobody() == True:
-                text = "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\n\nВозвращаю вас в главное меню"
-                kbd = nav.MenuOptions
-                a.level = OPTIONS
-                a.act = "divarication"
-            elif days_db != []:
-                while db < len(days_db):
-                    year = days_db[db]//10000
-                    month = (days_db[db]-(year*10000))//100
-                    day = (days_db[db]-(year*10000)-(month*100))//1
-                    date_str = f"{day}-{month}-{year}"
-                    days_ready.append(date_str)
-                    db += 1
-                a.sport_check_users = phrase
-                text = "Выберите дату:"
-                kbd = nav.kbdata(days_ready)
-                a.level = LEVEL1
-            else:
-                text = "Никого нет\nВыберите вид спорта:"
-                kbd = nav.MenuSports
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите вид спорта"
-            kbd = nav.MenuSports
-    elif a.level == LEVEL1:
-        prmode = None
-        halt, date = DateCheck(phrase)
-        if halt is True:
-            if database.CheckDate(date, a.sport_check_users) != 0:
-                (times, seats) = database.TimeOfGamesWithUsers(a.id, date)
-                if times != []:
-                    times_ready = []
-                    tm = 0
-                    while tm < len(times):
-                        hour = times[tm]//100
-                        minute = (times[tm]-(hour*100))//1
-                        time_str = f"{hour}:{minute}"
-                        times_ready.append(time_str)
-                        tm += 1
-                    a.date_check_users = date
-                    text = "Выберите время проведения игры:"
-                    kbd = nav.kbtime(times_ready, seats)
-                    a.level = LEVEL2
-                else:
-                    text = "Почему-то тут никого нет\nВозвращаю вас в главное меню"
-                    kbd = nav.MenuOptions
-                    a.level = START
-                    a.act = "divarication"
-                    #database.Action(id, a.act)
-            else:
-                text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
-                db = 0
-                days_ready = []
-                days_db = database.GamesWithUsers(a.sport_check_users)
-                while db < len(days_db):
-                    year = days_db[db]//10000
-                    month = (days_db[db]-(year*10000))//100
-                    day = (days_db[db]-(year*10000)-(month*100))//1
-                    date_str = f"{day}-{month}-{year}"
-                    days_ready.append(date_str)
-                    db += 1
-                    kbd = nav.kbdata(days_ready)
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
-            db = 0
-            days_ready = []
-            days_db = database.GamesWithUsers(a.sport_check_users)
-            while db < len(days_db):
-                year = days_db[db]//10000
-                month = (days_db[db]-(year*10000))//100
-                day = (days_db[db]-(year*10000)-(month*100))//1
-                date_str = f"{day}-{month}-{year}"
-                days_ready.append(date_str)
-                db += 1
-                kbd = nav.kbdata(days_ready)
-    elif a.level == LEVEL2:
-        prmode = None
-        halt, time = TimeCheck(phrase, a.date_check_users)
-        if halt is True:
-            if database.CheckTime(a.date_check_users, a.sport_check_users, time) != 0:
-                a.time_check_users = time
-                (name_users, id_users) = database.UsersOfGamesWithUsers(id, time)
-                text = f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
-                kbd = nav.kbnames(name_users, id_users)
-                a.level = LEVEL3
-            else:
-                text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
-                (times, seats) = database.TimeOfGamesWithUsers(a.id, a.date_check_users)
-                times_ready = []
-                tm = 0
-                while tm < len(times):
-                    hour = times[tm]//100
-                    minute = (times[tm]-(hour*100))//1
-                    time_str = f"{hour}:{minute}"
-                    times_ready.append(time_str)
-                    tm += 1
-                kbd = nav.kbtime(times_ready, seats)
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату"
-            (times, seats) = database.TimeOfGamesWithUsers(a.id, a.date_check_users)
-            times_ready = []
-            tm = 0
-            while tm < len(times):
-                hour = times[tm]//100
-                minute = (times[tm]-(hour*100))//1
-                time_str = f"{hour}:{minute}"
-                times_ready.append(time_str)
-                tm += 1
-            kbd = nav.kbtime(times_ready, seats)
-    elif a.level == LEVEL3:
-        prmode = None
-        if database.CheckUser(phrase) != 0:
-            a.user_id_check_users = int(phrase)
-            (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(id, a.user_id_check_users)
-            if username != "Информация отсутствует":
-                prmode = "HTML"
-                nick = (f"t.me/{username}")
-                name = namer(name, nick)
-            text = f"Вот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
-            kbd = nav.BackorMenu
-            a.level = LEVEL4
-        else:
-            (name_users, id_users) = database.UsersOfGamesWithUsers(id, a.time_check_users)
-            text = f"Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nНа эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
-            kbd = nav.kbnames(name_users, id_users)
-    elif a.level == LEVEL4:
-        prmode = None
-        if phrase == "back":
-            (name_users, id_users) = database.UsersOfGamesWithUsers(id, a.time_check_users)
-            text = f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:"
-            kbd = nav.kbnames(name_users, id_users)
-            a.level = LEVEL3
-        elif phrase == "menuop":
-            text = "Добро пожаловать в главное меню"
-            kbd = nav.MenuOptions
-            a.level = OPTIONS
-            a.act = "divarication"
-        else:
-            (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(id, a.user_id_check_users)
-            if username != "Информация отсутствует":
-                prmode = "HTML"
-                nick = (f"t.me/{username}")
-                name = namer(name, nick)
-            text = f"Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
-            kbd = nav.BackorMenu
-    spreadsheet = None
-    fixed = None
-    return (text, kbd, prmode, halt, spreadsheet, fixed)
-
-def ChangeSchedule(a: Admin, id: int, phrase: str):
-    if a.level == START:
-        if phrase in ("new", "setSche", "delSche"):
-            a.act_schedule = phrase
-            a.level = LEVEL1
-            if phrase == "new":
-                text = 'Дальше бы будете создавать новую игру\n\n\nВыберите вид спорта'
-                kbd = nav.MenuSports
-            elif phrase == "setSche":
-                text == "Дальше вы будете редактировать ранее сделаное расписание на игру. Для этого вам нужно будет открыть файл, который я вам прислал, и выбрать игру которую вы хотите изменить. Мне нужен только ее порядковый номер"
-                kbd == nav.WatNext
-                spreadsheet = CreateTable()
-            elif phrase == "delSche":
-                text == "Дальше вы будете редактировать ранее сделаное расписание на игру. Для этого вам нужно будет открыть файл, который я вам прислал, и выбрать игру которую вы хотите изменить. Мне нужен только ее порядковый номер"
-                kbd == nav.WatNext
-                spreadsheet = CreateTable()
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите что вас интересует"
-            kbd = nav.SetSchedule
-    if a.level == LEVEL1:
-        if phrase in ("volleyball", "football"):
-            a.sport_schedule = phrase
-            text = "Напишите дату проведения игры\nОбязательно в таком формате: ДД-ММ-ГГГГ\n\n\n ОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел"
-            kbd = None
-            a.level = LEVEL2
-        else:
-            text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nВыбрите вид спорта"
-            kbd = nav.MenuSports
-    elif a.level == LEVEL2:
-        halt, date = DateCheck(phrase)
-        if halt == True:
-            a.date_schedule = date
-            text = "Напишите время проведения игры в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел"
-            kbd = None
-            a.level = LEVEL3
-        else:
-            text = "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату\n\n\nОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел"
-            kbd = None
-    elif a.level == LEVEL3:
-        halt, time = TimeCheck(phrase, a.date_schedule)
-        if halt == True:
-            a.time_schedule = time
-            text = "Напишите количетсво мест \n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)"
-            kbd = None
-            a.level = LEVEL4
-        else:
-            text = "Вы ввели не время\nНапишите мне время в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел"
-            kbd = None
-    elif a.level == LEVEL4:
-        if IntCheck(phrase) == True:
-            a.seats_schedule = phrase
-            text = "Расписание успешно обновлено\nДобро пожаловать в главное меню"
-            kbd = nav.MenuOptions
-            database.NewScheduleGame(id, phrase)
-            a.level = OPTIONS
-            a.act = "divarication"
-        else:
-            text = "Вы ввели не число или же это число больше чем трехзначное значение\n\nПожалуйста, введите число, соблюдая все условия, а не что то еще\n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)"
-            kbd = None
-    prmode = None
+def RegistiredAdminUserlevel3(a: Admin, id: int, phrase: str):
     halt = None
-    spreadsheet = None
-    fixed = None
-    return (text, kbd, prmode, halt, spreadsheet, fixed)
+    if IntCheck(phrase):
+        halt, upd_seats  = SeatsCheck(id, phrase)
+        if halt is True:
+            a.seats_reg_ad_us = int(phrase)
+            text = "Выберите способ оплаты."
+            kbd = nav.KbPay
+            a.level = LEVEL4
+            database.BalanceOfTheUniverse(upd_seats, id)
+        else:
+            text = "Вы ввели не цифру или ввели цифру, которая больше, чем количество свободных мест на эту игру.\n\n\nВыберите или введите желаемое количество мест."
+            kbd = nav.FrequentChoice
+    else:
+        text = "Я жду от вас нажатия на кнопку или сообщение, состоящее только из числа.\n\n\nВыберите или введите желаемое количество мест."
+        kbd = nav.FrequentChoice
+    return text, kbd, halt
 
-def REG(a: Admin, id: int, phrase: str):
-    halt = False
-    if a.level == START:
-        text = "Приветсвую Вас в нашем боте! Этот бот возможно нужен вам, только в том случае, если вы купили его первую часть и вам нужна админская чаcть))\nЕсли да - то нажмите на конопку снизу"
-        kbd = nav.ComStartReg
-        a.level = LEVEL1
-        fixed = None
-    elif a.level == LEVEL1:
-        if phrase == "Зарегистрироваться":
-            database.IntermediateAction(id, a.level)
-            text = "Введите пароль"
-            kbd = None
-            a.level = LEVEL2
-        else:
-            text = "Приветсвую Вас в нашем боте! Этот бот возможно нужен вам, только в том случае, если вы купили его первую часть и вам нужна админская чаcть))\nЕсли да - то нажмите на конопку снизу"
-            kbd = nav.ComStartReg
-        fixed = None
-    elif a.level == LEVEL2:
-        value = CheckPassword(phrase)
-        if value == False:
-            text = "Пароль не верный! Попробуйте еще..."
-            kbd = None
-            fixed = None
-        else:
-            a.level = LEVEL3
-            text = """Вот пара рекомендаций, как мной пользоваться:
-1. Узнать кто записался:
-        Вы выбираете вид спорта, дату, время и вам показывается кто зарегестрировался на эту игру, 
-        так же именно через эту функцию вы сможите связаться с участником 
-        (Если он зарегестрировался через бота, то можно будеть нажать на его имя и перейти с ним в диалог, 
-        а если нет - то тогда просто посмотрите контактную информацию и свяжитесь с ним сами.)
-2. Настроить расписание:
-        С помощью этой функции бота Вы сможите настроить расписание, а именно: Добавить или Удалить
-3. Создать нового пользователя:
-        Нажав на эту кнопку вы сможете создать нового пользователя (как бы это странно не было).
-        Данная функция предназначена для того, чтоб когда Вам звонят и просятся записать Вас их на игру, то для начала вы можите создать 
-        профиль этому пользолвателю, но этим профилем сможите пользоватся только Вы
-4. Зарегестрировать пользователя на игру:
-        Это функция продолжение предыдущей и не только. Тут Вы можите записать ЛЮБОГО пользователя на игру, который уже есть в системе
-5. Настроить/Удалить пользователя:
-        Думаю, название этой кнопки все и так за себя говорит
-6. Получить отчет о деятельности бота:
-        Нажав на эту кнопку бот вышлет Вам html файл, который Вам надо будет открыть и там будет таблица из всей информации по расписанию
-    
-    
-    
-P.S. Если чо, то вот моя главная команда /menu она возвратит Вас из любой точки бота в главное меню, естсественно без сохранения прогресса"""
-            
-            kbd = nav.Next
-            fixed = True
-           # kbd = nav.MenuOptions
-    elif a.level == LEVEL3:
-        text = "Вот опции которые вам дотупны:"
+def RegistiredAdminUserlevel4(a: Admin, id: int, phrase: str):
+    if phrase in ("cash", "card"):
+        (names_users, id_users) = database.AllUsers()
+        a.payment_reg_ad_us = phrase
+        text = "Выберите пользователя."
+        kbd = nav.kbnames(names_users, id_users)
+        a.level = LEVEL5
+    else:
+        text = "Я жду от вас нажатия на кнопку или сообщение, состоящее только из числа.\n\n\nВыберите способ оплаты."
+        kbd = nav.KbPay
+    return text, kbd
+
+def RegistiredAdminUserlevel5(a: Admin, id: int, phrase: str):
+    if IDCheck(phrase):
+        RegAdUs(a, phrase)
+        text = "Мои поздравления! Вы зарегистрировали этого пользователя на игру.\nВозвращаю Вас в главное меню."
         kbd = nav.MenuOptions
         a.level = OPTIONS
-        fixed = None
         a.act = "divarication"
+    else:
+        text = "Я жду от вас нажатия на кнопку или сообщение, состоящее только из числа.\n\n\nВыберите пользователя."
+        (names_users, id_users) = database.AllUsers()
+        kbd = nav.kbnames(names_users, id_users)
+    return text, kbd
+
+def ViewWhoReg(a: Admin, id: int, phrase: str):
+    halt = None
     prmode = None
     spreadsheet = None
+    fixed = None
+    text = None
+    kbd = None
+    if a.level == START:
+        text, kbd = ViewWhoRegStart(a, id, phrase)
+    elif a.level == LEVEL1:
+        text, kbd = ViewWhoReglevel1(a, phrase)
+    elif a.level == LEVEL2:
+        text, kbd, halt = ViewWhoReglevel2(a, id, phrase)
+    elif a.level == LEVEL3:
+        text, kbd, prmode = ViewWhoReglevel3(a, phrase)
+    elif a.level == LEVEL4:
+        text, kbd, prmode = ViewWhoReglevel4(a, id, phrase)
     return (text, kbd, prmode, halt, spreadsheet, fixed)
+
+
+def ViewWhoRegStart(a: Admin, id: int, phrase: str):
+    if phrase in ("volleyball", "football"):
+        days_db = database.GamesWithUsers(phrase)
+        if database.Nobody() == True:
+            text = "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\nВозвращаю Вас в главное меню."
+            kbd = nav.MenuOptions
+            a.level = OPTIONS
+            a.act = "divarication"
+        elif days_db != []:
+            a.sport_check_users = phrase
+            text = "Выберите дату:"
+            kbd = nav.kbdata(CreateDateList(days_db))
+            a.level = LEVEL1
+        else:
+            text = "Никого нет\nВыберите вид спорта:"
+            kbd = nav.MenuSports
+    else:
+        text = "Я жду от Вас нажатия на кнопку!\n\nВыберите вид спорта."
+        kbd = nav.MenuSports
+    return text, kbd
+
+def ViewWhoReglevel1(a: Admin, phrase: str):
+    halt, date = DateCheck(phrase)
+    if halt is True:
+        if database.CheckDate(date, a.sport_check_users) != 0:
+            (times, seats) = database.TimeOfGamesWithUsers(a.id, date)
+            if times != []:
+                a.date_check_users = date
+                text = "Выберите время проведения игры:"
+                kbd = nav.kbtime(CreateTimeList(times), seats)
+                a.level = LEVEL2
+            else:
+                text = "Почему-то тут никого нет.\n\nВозвращаю Вас в главное меню."
+                kbd = nav.MenuOptions
+                a.level = START
+                a.act = "divarication"
+                #database.Action(id, a.act)
+        else:
+            text = "Вы прислали мне дату, но, к сожалению, мне нужна только дата, которую я вам предлагаю на кнопках"
+            kbd = nav.kbdata(CreateDateList(database.GamesWithUsers(a.sport_check_users)))
+    else:
+        text = "Я жду от вас нажатия на кнопку!\n\nВыберите дату."
+        kbd = nav.kbdata(CreateDateList(database.GamesWithUsers(a.sport_check_users)))
+    return text, kbd
+
+
+def ViewWhoReglevel2(a: Admin, id: int, phrase: str):
+    halt, time = TimeCheck(phrase, a.date_check_users)
+    (times, seats) = database.TimeOfGamesWithUsers(a.id, a.date_check_users)
+    if halt is True:
+        if database.CheckTime(a.date_check_users, a.sport_check_users, time) != 0:
+            a.time_check_users = time
+            (name_users, id_users) = database.UsersOfGamesWithUsers(id, time)
+            text = f"На эту игру зарегистрировалось {len(name_users)}.\nНажмите на имена ниже, чтобы узнать подробную информацию:"
+            kbd = nav.kbnames(name_users, id_users)
+            a.level = LEVEL3
+        else:
+            text = "Вы прислали мне время, но, к сожалению, я жду от вас время, которое я вам предлагаю на кнопках\n\nВыберите время."
+            kbd = nav.kbtime(CreateTimeList(times), seats)
+    else:
+        text = "Я жду от вас нажатия на кнопку!\n\nВыберите время."
+        kbd = nav.kbtime(CreateTimeList(times), seats)
+    return text, kbd, halt
+
+def ViewWhoReglevel3(a: Admin, phrase: str):
+    prmode = None
+    if database.CheckUser(phrase) != 0:
+        a.user_id_check_users = int(phrase)
+        (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(a.id, a.user_id_check_users)
+        if username != "Информация отсутствует":
+            prmode = "HTML"
+            nick = (f"t.me/{username}")
+            name = namer(name, nick)
+        text = f"Вот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
+        kbd = nav.BackorMenu
+        a.level = LEVEL4
+    else:
+        (name_users, id_users) = database.UsersOfGamesWithUsers(a.id, a.time_check_users)
+        text = f"Я жду от Вас нажатия на кнопку!\n\nНа эту игру зарегистрировалось {len(name_users)}.\nНажмите на имена ниже, чтобы узнать подробную информацию:"
+        kbd = nav.kbnames(name_users, id_users)
+    return text, kbd, prmode
+
+def ViewWhoReglevel4(a: Admin, id: int, phrase: str):
+    prmode = None
+    if phrase == "back":
+        (name_users, id_users) = database.UsersOfGamesWithUsers(id, a.time_check_users)
+        text = f"На эту игру зарегистрировалось {len(name_users)}.\nНажмите на имена ниже, чтобы узнать подробную информацию:"
+        kbd = nav.kbnames(name_users, id_users)
+        a.level = LEVEL3
+    elif phrase == "menuop":
+        text = "Добро пожаловать в Главное Меню"
+        kbd = nav.MenuOptions
+        a.level = OPTIONS
+        a.act = "divarication"
+    else:
+        (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(id, a.user_id_check_users)
+        if username != "Информация отсутствует":
+            prmode = "HTML"
+            nick = (f"t.me/{username}")
+            name = namer(name, nick)
+        text = f"Я жду от вас нажатия на кнопку!\n\nВот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним"
+        kbd = nav.BackorMenu
+    return text, kbd, prmode
+
+
+def ChangeSchedule(a: Admin, id: int, phrase: str):
+    halt = None
+    prmode = None
+    spreadsheet = None
+    fixed = None
+    text = None
+    kbd = None
+    if a.level == START:
+        text, kbd, spreadsheet = ChangeScheduleStart(a, phrase)
+    elif a.level == LEVEL1:
+        if a.act_schedule == "new":
+            text, kbd = ChangeSchedulelevel1(a, phrase, LEVEL2)
+        elif a.act_schedule in ("setSche", "delSche"):
+            text, kbd, spreadsheet = ChangeScheduleBegin(a, id, phrase)
+    elif a.level == LEVEL2:
+        if a.act_schedule == "new":
+            text, kbd, halt = ChangeSchedulelevel2(a, phrase, LEVEL3)
+        elif a.act_schedule == "setSche":
+            text, kbd = ChangeSchedulelevel1(a, phrase, LEVEL3)
+    elif a.level == LEVEL3:
+        if a.act_schedule == "new":
+            text, kbd, halt = ChangeSchedulelevel3(a, phrase, LEVEL4)
+        elif a.act_schedule == "setSche":
+            text, kbd, halt = ChangeSchedulelevel2(a, phrase, LEVEL4)
+    elif a.level == LEVEL4:
+        if a.act_schedule == "new":
+            text, kbd = ChangeSchedulelevel4(a, id, phrase)
+        elif a.act_schedule == "setSche":
+            text, kbd, halt = ChangeSchedulelevel3(a, phrase, LEVEL5)
+    elif a.level == LEVEL5:
+        text, kbd = ChangeScheduleAlmostEnd(a, id, phrase)
+    return (text, kbd, prmode, halt, spreadsheet, fixed)
+
+
+def ChangeScheduleStart(a: Admin, phrase: str):
+    spreadsheet = None
+    if phrase in ("new", "setSche", "delSche"):
+        a.act_schedule = phrase
+        a.level = LEVEL1
+        if phrase == "new":
+            text = "Дальше бы будете создавать новую игру\n\n\nВыберите вид спорта."
+            kbd = nav.MenuSports
+        elif phrase in ("setSche", "delSche"):
+            text = "Дальше вы будете редактировать ранее сделанное расписание на игру. Для этого вам нужно будет открыть файл, который я вам прислал, и выбрать игру, которую вы хотите изменить. Мне нужен только её порядковый номер."
+            kbd = nav.WatNext
+            spreadsheet = CreateTable()
+            a.level = LEVEL1
+    else:
+        text = "Я жду от вас нажатия на кнопку!\n\nВыберите, что вас интересует."
+        kbd = nav.SetSchedule
+    return text, kbd, spreadsheet
+
+def ChangeSchedulelevel1(a: Admin, phrase: str, level: int):
+    if phrase in ("volleyball", "football"):
+        a.sport_schedule = phrase
+        text = "Напишите дату проведения игры.\nБот примет за дату любое ваше сообщение, которое будет соответствовать следующему условию: \nПервые 1 или 2 цифры в сообщении будут расцениваться как число. Вторые 1 или 2 цифры будут расцениваться как месяц. И дальше, 4 следующие цифры, которые будут идти подряд, будут расцениваться как год."
+        kbd = None
+        a.level = level
+    else:
+        text = "Я жду от вас нажатия на кнопку.\n\nВыберите вид спорта."
+        kbd = nav.MenuSports
+    return text, kbd
+
+
+def ChangeScheduleBegin(a: Admin, id: int, phrase: str):
+    if GameIdCheck(phrase):
+        spreadsheet = None
+        a.game_id_schedule = int(phrase)
+        if a.act_schedule == "setSche":
+            text = "Прекрасно! Вы выбрали номер игры, и теперь можете приступить к ее изменениям!\n\n\nВыберите вид спорта"
+            kbd = nav.MenuSports
+            a.level = LEVEL2
+        else:
+            (text, kbd) = ChangeScheduleEnd(a)
+            database.ShadowRemoveGame(a.game_id_schedule)
+    else:
+        text = "Вы ввели не номер игры, а что то еще. Напоминаю, мне нужен только номер, т.е. мне нужно одно сообщение от вас содержащее только одну цифру."
+        spreadsheet = CreateTable()
+        kbd = nav.WatNext
+    return text, kbd, spreadsheet
+
+
+def ChangeSchedulelevel2(a: Admin, phrase: str, level: int):
+    halt, date = DateCheck(phrase)
+    if halt == True:
+        a.date_schedule = date
+        text = "Напишите время проведения игры. \nБот примет за время любое ваше сообщение, которое будет соответствовать следующему условию:\n Первые 1 или 2 цифры в сообщении будут расцениваться как часы. А вторые 1 или 2 цифры будут расцениваться как минуты."
+        kbd = None
+        a.level = level
+    else:
+        text = "Вы ввели не дату или дату, которая меньше сегодняшнего числа.\nНапишите дату."
+        kbd = None
+    
+    return text, kbd, halt
+
+def ChangeSchedulelevel3(a: Admin, phrase: str, level: int):
+    halt, time = TimeCheck(phrase, a.date_schedule)
+    if halt == True:
+        a.time_schedule = time
+        text = "Напишите количество мест.\n\nБоту нужно прислать число (однозначное или двузначное)."
+        kbd = None
+        a.level = level
+    else:
+        text = "Вы ввели не время.\nНапишите время."
+        kbd = None
+    return text, kbd, halt
+
+def ChangeSchedulelevel4(a: Admin, id: int, phrase: str):
+    if IntCheck(phrase) == True:
+        a.seats_schedule = phrase
+        text = "Расписание успешно обновлено.\nДобро пожаловать в Главное Меню."
+        kbd = nav.MenuOptions
+        database.NewScheduleGame(id, phrase)
+        a.level = OPTIONS
+        a.act = "divarication"
+    else:
+        text = "Похоже, вы ввели не количество мест, или же вы ввели число, которое больше, чем максимальное значение двузначного числа. Введите, пожалуйста, нужное вам количество мест."
+        kbd = None
+    return text, kbd
+
+def ChangeScheduleAlmostEnd(a: Admin, id: str, phrase: str):
+    if IntCheck(phrase):
+        a.seats_schedule = phrase
+        database.ChangeGame(id, phrase)
+        (text, kbd) = ChangeScheduleEnd(a)
+    else:
+        text = "Похоже, вы ввели не количество мест, или же вы ввели число, которое больше, чем максимальное значение двузначного числа. Введите, пожалуйста, нужное вам количество мест."
+        kbd = None
+    return text, kbd
+
+
+def ChangeScheduleEnd(a: Admin):
+    countusers, adminusers = database.CountTGUsers(a.id)
+    print("будтье так добры блять", countusers, adminusers, a.id)
+    if adminusers != 0:
+        database.UserWhoNeedNotif(a.id)
+    if countusers == 0 and adminusers == 0:
+        text = "Эту игру никто еще не ждет, так что уведомлять об изменениях пока что никого не нужно"
+    else:    
+        if countusers == 1:
+            if adminusers == 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователю. Но также есть еще {adminusers} пользователь, который нуждается в том, чтобы вы его предупредили сами. (Он будет находиться в Главном Меню под кнопкой 'Уведомления')."
+            elif adminusers > 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователю. Но также есть еще {adminusers} пользователей, которые нуждаются в том, чтобы вы предупредили их сами. (Они будут находиться в Главном Меню под кнопкой 'Уведомления')."
+            else:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователю. Все пользователи уведомлены, и я ожидаю ответа."
+        elif countusers > 1:
+            if adminusers == 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователям. Но также есть еще {adminusers} пользователь, который нуждается в том, чтобы вы его предупредили сами. (Он будет находиться в Главном Меню под кнопкой 'Уведомления')."
+            elif adminusers > 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователям. Но также есть еще {adminusers} пользователей, которые нуждаются в том, чтобы вы предупредили их сами. (Они будут находиться в Главном Меню под кнопкой 'Уведомления')."
+            else:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователям. Все пользователи уведомлены, и я ожидаю ответа."
+        else:
+            if adminusers == 1:
+                text = f"Расписание успешно обновлено. Нет ни одного пользователя, который записался на игру через бота, так что мне некого уведомлять. Но также есть еще {adminusers} пользователь, который нуждается в том, чтобы вы его предупредили сами. (Он будет находиться в Главном Меню под кнопкой 'Уведомления')."
+            elif adminusers > 1:
+                text = f"Расписание успешно обновлено. Нет ни одного пользователя, который записался на игру через бота, так что мне некого уведомлять. Но также есть еще {adminusers} пользователей, которые нуждаются в том, чтобы вы предупредили их сами. (Они будут находиться в Главном Меню под кнопкой 'Уведомления')."
+    kbd = nav.MenuOptions
+    a.level = OPTIONS
+    a.act = "divarication"
+    return text, kbd
+
+def REG(a: Admin, id: int, phrase: str):
+    halt = None
+    prmode = None
+    spreadsheet = None
+    fixed = None
+    text = None
+    kbd = None
+    if a.level == START:
+        text, kbd = REGStart(a)
+    elif a.level == LEVEL1:
+        text, kbd = REGlevel1(a, id, phrase)
+    elif a.level == LEVEL2:
+        text, kbd, fixed = REGlevel2(a, id, phrase)
+    elif a.level == LEVEL3:
+        text, kbd = REGlevel3(a, id, phrase)
+    return (text, kbd, prmode, halt, spreadsheet, fixed)
+
+def REGStart(a: Admin):
+    text = "Добро пожаловать в нашего бота! Этот бот может пригодиться вам, если вы приобрели его первую часть и вам требуется административная часть. Если это ваш случай, то нажмите на кнопку снизу."
+    kbd = nav.ComStartReg
+    a.level = LEVEL1
+    return text, kbd
+
+def REGlevel1(a: Admin, id: int, phrase: str):
+    if phrase == "Зарегистрироваться":
+        database.IntermediateAction(id, a.level)
+        text = "Введите пароль."
+        kbd = None
+        a.level = LEVEL2
+    else:
+        text = "Добро пожаловать в нашего бота! Этот бот может пригодиться вам, если вы приобрели его первую часть и вам требуется административная часть. Если это ваш случай, то нажмите на кнопку снизу."
+        kbd = nav.ComStartReg
+    return text, kbd
+
+def REGlevel2(a: Admin, id: int, phrase: str):
+    value = CheckPassword(phrase)
+    fixed = None
+    if value == False:
+        text = "Пароль не верный! Попробуйте еще..."
+        kbd = None
+    else:
+        a.level = LEVEL3
+        text = """Вот пара рекомендаций о том, как пользоваться этим ботом:
+
+1. Узнать, кто записался:
+   - Выберите вид спорта, дату и время, чтобы увидеть, кто зарегистрировался на эту игру. Вы сможете связаться с участником через эту функцию. Если пользователь зарегистрировался через бота, то можно нажать на его имя и перейти в диалог с ним. Если нет, то вы можете просмотреть контактную информацию и связаться с ним самостоятельно.
+
+2. Настроить расписание:
+   - С помощью этой функции вы можете настроить расписание, добавив или удалив игры.
+
+3. Создать нового пользователя:
+   - Нажав на эту кнопку, вы можете создать нового пользователя. Эта функция предназначена для того, чтобы удобно записывать пользователей на игры.
+
+4. Зарегистрировать пользователя на игру:
+   - Это продолжение предыдущей функции. Здесь вы можете записать любого пользователя на игру, который уже есть в системе.
+
+5. Настроить/Удалить пользователя:
+   - Эта функция предназначена для настройки и удаления пользователей из системы.
+
+6. Получить отчет о деятельности бота:
+   - Нажав на эту кнопку, бот отправит вам HTML-файл, в котором будет таблица с информацией о расписании.
+
+7. Уведомления:
+   - Тут будут храниться пользователи, которые нуждаются в вашем уведомлении. Но это будет только в том случае, если до этого вы меняли или удаляли какие-то игры из расписания.
+
+P.S. Если что-то пойдет не так, вы всегда можете использовать команду /menu, чтобы вернуться в главное меню без сохранения прогресса. 
+В самом крайнем случае, когда что то случиться с ботом и он зависнет, но вам нужно будет срочно что то сделать, то напишите ему команду /reset .
+Это команда опасна для вас же самих, так как это полностью удалит всю информацию в боте о вас и вам придется делать все сначала. Но она все же дает 
+второй шанс для того что бы закончить начатое. Большая просьба, если вы все же прибегли к такому виду перезагрузки бота, задокументируйте, 
+сфоткайте или еще что то сделаете и отправтье сведения об ошибке разработчику.""" 
+        kbd = nav.Next
+        fixed = True
+    return text, kbd, fixed
+
+def REGlevel3(a: Admin, id: int, phrase: str):
+    text = "Вот опции, которые вам доступны:"
+    kbd = nav.MenuOptions
+    a.level = OPTIONS
+    a.act = "divarication"
+    return text, kbd
 
 def MenuOptions(a: Admin, id: int, phrase: str):
     halt = False
@@ -623,18 +870,21 @@ def MenuOptions(a: Admin, id: int, phrase: str):
         a.level = START
         spreadsheet = None
     elif phrase == 'Настроить расписание':
-        text = "Выберите что вас интересует"
+        text = "Выберите, что вас интересует."
         a.act = "schedule setting"
         kbd = nav.SetSchedule
+        halt = None
+        spreadsheet = None
+        a.level = START
     elif phrase == "Создать нового пользователя":
         a.act = "create new user"
-        text = "Выберите откуда он/она:"
+        text = "Выберите, откуда он/она:"
         kbd = nav.MenuFrom
         a.level = START
         spreadsheet = None
     elif phrase == "Настроить пользователя":
         a.act = "сhange user"
-        text = "Выберите действие"
+        text = "Выберите действие."
         kbd = nav.Do
         a.level = START
         spreadsheet = None
@@ -643,8 +893,22 @@ def MenuOptions(a: Admin, id: int, phrase: str):
         text = None
         spreadsheet = CreateTable()
         kbd = nav.WatNext
+        a.level = START
+    elif phrase == "notification":
+        names, id_user = database.WhoNeedNotif(id)
+        print(id_user, "ну я да и что")
+        if id_user != []:
+            a.act = "notify the user"
+            text = "Вот пользователи, которые нуждаются в том, чтобы вы их оповестили об изменении расписания."
+            kbd = nav.kbnames(names, id_user)
+            a.level = START
+        else:
+            a.act = "divarication"
+            text = "Вы не меняли и не удалили ни одной игры, следовательно, нет пользователей, которым нужно было бы отправить уведомление. Или же вы меняли, но пользователи не ожидали игру, которую вы меняете."
+            kbd = nav.MenuOptions
+        spreadsheet = None
     else:
-        text = "!!!АЛЕ ДА, НА ДАННЫЙ МОМЕНТ Я ВОСПРИНИМАЮ ТОЛЬКО НАЖАТИЯ НА КНОПКИ!!!\n\n\nВыберите интересующю Вас опцию"
+        text = "На данный момент я воспринимаю только нажатия на кнопки!\n\nВыберите интересующую вас опцию."
         kbd = nav.MenuOptions
     database.Action(id, a.act)
     prmode = None
@@ -655,12 +919,21 @@ def MenuOptions(a: Admin, id: int, phrase: str):
 def CreateTable():
     data = database.CreateTable()
     html_table = "<table>"
-    html_table += "<tr><th>Номер</th><th>Вид спорта</th><th>Дата проведения</th><th>Время проведения</th><th>Свободные места</th></tr>"
+    html_table += "<tr><th>Уникальный номер</th><th>Вид спорта</th><th>Дата проведения</th><th>Время проведения</th><th>Свободные места</th></tr>"
     
     for row in data:
         game_id, sport, date, time, seats = row
-        html_table += f"<tr><td>{game_id}</td><td>{sport}</td><td>{date}</td><td>{time}</td><td>{seats}</td></tr>"
 
+        year = date//10000
+        month = (date-(year*10000))//100
+        day = (date-(year*10000)-(month*100))//1
+        date_str = f"{day}-{month}-{year}"
+
+        hour = time//100
+        minute = (time-(hour*100))//1
+        time_str = f"{hour}:{minute}"
+
+        html_table += f"<tr><td>{game_id}</td><td>{sport}</td><td>{date_str}</td><td>{time_str}</td><td>{seats}</td></tr>"
     html_table += "</table>"
 
     with open("html.html", "w") as html_file:
@@ -684,7 +957,7 @@ def CreateNewUser(a: Admin, id: int, phrase: str):
     if a.level == START:
        # id_newuser = db.IdNewUser()
         if phrase in ("tg", "whatsapp", "viber", "calls"):
-            text = "Напишите имя нового пользователя \n\n\nP.S. Небольшая памятка: во всех следующих действиях вы будете отправлять информацию боту. Т.к. бот не в силах проверить на достоверность информацию, которую вы ему пришлете (потому что имя, фамилия, номер телефона и тд могут быть любые у пользователя, которого вы регистрируете), то БОЛЬШАЯ ПРОСЬБА перепроверять информацию передотправкой, иначе вам придется удалять пользователя или же дополнительно настраивать (уже не тут)"
+            text = "Напишите имя нового пользователя.\n\nP.S. Небольшая памятка: во всех следующих действиях вы будете отправлять информацию боту. Т.к. бот не в силах проверить на достоверность информацию, которую вы ему пришлете (потому что имя, фамилия, номер телефона и т.д. могут быть любыми у пользователя, которого вы регистрируете), то БОЛЬШАЯ ПРОСЬБА перепроверять информацию перед отправкой, иначе вам придется удалять пользователя или же дополнительно его настраивать (уже не тут)."
             kbd = None
             a.fromwhere_new_user = phrase
             a.level = LEVEL1
@@ -692,22 +965,22 @@ def CreateNewUser(a: Admin, id: int, phrase: str):
             text = "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыьерите откуда пользователь"
             kbd = nav.MenuFrom
     elif a.level == LEVEL1:
-        text = "Напишите фамилию нового пользователя"
+        text = "Напишите фамилию нового пользователя."
         kbd = None
         a.name_new_user = phrase
         a.level = LEVEL2
     elif a.level == LEVEL2:
-        text = "Напишите предпочтительный язык нового пользователя"
+        text = "Напишите предпочтительный язык нового пользователя."
         kbd = None
         a.lastname_new_user = phrase
         a.level = LEVEL3
     elif a.level == LEVEL3:
-        text = "Напишите номер телефона нового пользователя"
+        text = "Напишите номер телефона нового пользователя."
         kbd = None
         a.language_new_user = phrase
         a.level = LEVEL4
     elif a.level == LEVEL4:
-        text = "Новый пользователь успешно создан!\nВозвращаю вас в главное меню"
+        text = "Новый пользователь успешно создан!\nВозвращаю вас в главное меню."
         kbd = nav.MenuOptions
         a.phonenum_new_user = phrase
         database.CreateNewUser(id, phrase)
@@ -815,7 +1088,6 @@ def RegAdUs(a:Admin, phrase):
 
 def IDCheck(uid) -> bool:
     all_id = database.SelAllUid()
-    print("hehehe", all_id, uid)
 
     i = 0
     while i < len(all_id):
@@ -842,17 +1114,25 @@ def IDCheck2(uid) -> bool:
 def SeatsCheck(id: int, seat: str) -> bool:
     free_seats = database.HowMutchSeats(id)
     update_seats = None
-    print("YAYAYAYYA", free_seats)
     if int(seat) > free_seats:
         halt = False
     else:
         update_seats = free_seats - int(seat)
         halt = True
-    print("SEAT BOOLEAN =", halt)
     return halt, update_seats
 
 
-
+def IDNotifCheck(adid: int, something):
+    notifuid = database.IdNotifUsers(adid)
+    i = 0
+    while i < len(notifuid):
+        if something == str(notifuid[i]):
+            find = True
+            i = len(notifuid)
+        else:
+            find = False
+        i += 1
+    return find
 
 def DateCheck(date_click) -> bool:
     if isinstance(date_click, str):
@@ -932,7 +1212,6 @@ def TimeCheck2(time_click: str, date: str):
                         time = (hour * 100) + minute
         else:
             halt = False
-    print("HALT AND TIME:", halt, time)
     return halt, time
 
 def ValidTime(hr: int, min: int):
@@ -957,6 +1236,19 @@ def IntCheck2(mes: str) -> bool:
     else:
         halt = False
     return halt
+
+def GameIdCheck(gid) -> bool:
+    all_gid = database.SelGid()
+    i = 0
+    while i < len(all_gid):
+        if gid == str(all_gid[i]):
+            find = True
+            i = len(all_gid)
+        else:
+            find = False
+        i += 1
+    return find
+
 
 
 def EvPrevMsgId(uid: int, name: str, lname: str, usname: str):
@@ -997,12 +1289,13 @@ def RetrieveAdmin(uid: int) -> Admin:
     a.action_change_user = None
     a.gid_notification = None
     a.uid_notification = None
+    a.condition_notification = None
 
     a.level = None
     (a.id, a.name, a.surname, a.username, a.act, a.sport_check_users, a.date_check_users, a.time_check_users, a.user_id_check_users,
     a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user,
     a.act_schedule, a.game_id_schedule, a.sport_schedule, a.date_schedule, a.time_schedule, a.seats_schedule, a.sport_reg_ad_us, a.date_reg_ad_us,
-    a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.gid_notification, a.uid_notification, a.level) = database.RecallAdmin(uid)
+    a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.gid_notification, a.uid_notification, a.condition_notification,  a.level) = database.RecallAdmin(uid)
     if a.level == NEGATIVE:
         a.level = START
     return a
@@ -1023,5 +1316,5 @@ def CheckPassword(text: str) -> bool:
 def RetainAdmin(a: Admin):
     database.RetainAdmin(a.id, a.name, a.surname, a.username, a.act, a.sport_check_users, a.date_check_users, a.time_check_users, a.user_id_check_users,
     a.fromwhere_new_user, a.name_new_user, a.lastname_new_user, a.language_new_user, a.phonenum_new_user, a.act_schedule, a.game_id_schedule, a.sport_schedule, a.date_schedule, a.time_schedule, a.seats_schedule, 
-    a.sport_reg_ad_us, a.date_reg_ad_us, a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.gid_notification, a.uid_notification, a.level, a.id)
+    a.sport_reg_ad_us, a.date_reg_ad_us, a.time_reg_ad_us, a.seats_reg_ad_us, a.payment_reg_ad_us, a.user_id_change_user, a.action_change_user, a.gid_notification, a.uid_notification, a.condition_notification, a.level, a.id)
     #db.UpdateAdmin(a.id, a.level, a.data_act, a.act)

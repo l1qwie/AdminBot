@@ -11,6 +11,7 @@ MenuOptions = InlineKeyboardMarkup(inline_keyboard=[
     ,[InlineKeyboardButton(text='Зарегестрировать пользователя на игру', callback_data='Зарегестрировать пользователя')]
     ,[InlineKeyboardButton(text="Настроить/удалить пользователя", callback_data="Настроить пользователя")]
     ,[InlineKeyboardButton(text="Получить отчет о деятельности бота", callback_data="Отчет")]
+    ,[InlineKeyboardButton(text="Уведомления", callback_data="notification")]
 
     #,[InlineKeyboardButton(text='Зарегестрировать на игру пользователя', callback_data='Зарегестрировать на игру пользователя')]
 ])
@@ -50,6 +51,17 @@ MenuFrom = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Позвонили', callback_data='calls')]
 ])
 
+def datenotif(days, status):
+    keyboard = []
+    for count, item in zip(days, status):
+        if item == "del":
+            stat = "Удалена"
+        elif item == "changed":
+            stat = "Изменена"
+        button = InlineKeyboardButton(text=f"{count}  ({stat})", callback_data=f"{count}")
+        keyboard.append([button])
+    inkbnotif = InlineKeyboardMarkup(inline_keyboard=keyboard)
+    return inkbnotif
 
 def kbdata(days):
     keyboard = []
@@ -108,7 +120,6 @@ SetSchedule = InlineKeyboardMarkup(inline_keyboard=[
 
 Notif = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Уведомлен", callback_data="Notif completed")],
-    [InlineKeyboardButton(text="Уведомлю позже", callback_data="Notif later")],
     [InlineKeyboardButton(text="В главное меню", callback_data="MainMenu")]
 ])
 

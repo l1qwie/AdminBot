@@ -31,13 +31,20 @@ async def VecMess(message: types.Message):
     if prev != None:
         await bot.delete_message(chat_id=message.from_user.id, message_id=prev)
     (text, kbd, prmode, halt, spreadsheet, fixed) = DispatchPhrase(message.from_user.id, message.text)
-    if text != None:
+    if spreadsheet is None:
         reply = await bot.send_message(message.from_user.id, text=text, reply_markup=kbd, parse_mode=prmode)
         if fixed is not None:
             await bot.pin_chat_message(message.from_user.id, message_id=reply.message_id)
             RetainPrevMsgId(message.from_user.id, None)
         else:
             RetainPrevMsgId(message.from_user.id, reply.message_id)
+    else:
+        if text is None:
+            reply = await bot.send_document(message.from_user.id, BufferedInputFile(spreadsheet.encode(), 'Chart.html'), reply_markup=kbd)
+        else:
+            print("ну тут я, тут")
+            reply = await bot.send_document(message.from_user.id, BufferedInputFile(spreadsheet.encode(), 'Chart.html'), caption=text, reply_markup=kbd)
+        RetainPrevMsgId(message.from_user.id, reply.message_id)
         
 
 @router.callback_query()
@@ -49,6 +56,7 @@ async def VecCallBack(query: types.CallbackQuery):
         await bot.delete_message(chat_id=query.from_user.id, message_id=prev)
     print(query.data)
     (text, kbd, prmode, halt, spreadsheet, fixed) = DispatchPhrase(query.from_user.id, query.data)
+    print(text, spreadsheet)
     if spreadsheet is None:
         reply = await bot.send_message(query.from_user.id, text=text, reply_markup=kbd, parse_mode=prmode)
         if fixed is not None:
@@ -57,7 +65,11 @@ async def VecCallBack(query: types.CallbackQuery):
         else:
             RetainPrevMsgId(query.from_user.id, reply.message_id)
     else:
-        reply = await bot.send_document(query.from_user.id, BufferedInputFile(spreadsheet.encode(), 'Chart.html'), reply_markup=kbd)
+        if text is None:
+            reply = await bot.send_document(query.from_user.id, BufferedInputFile(spreadsheet.encode(), 'Chart.html'), reply_markup=kbd)
+        else:
+            print("ну тут я, тут")
+            reply = await bot.send_document(query.from_user.id, BufferedInputFile(spreadsheet.encode(), 'Chart.html'), caption=text, reply_markup=kbd)
         RetainPrevMsgId(query.from_user.id, reply.message_id)
 
 

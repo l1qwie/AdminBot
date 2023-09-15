@@ -9,8 +9,34 @@ tdb = TestDB("..\\bot(for_all)\\test_database.db")
 
 
 #Intermediate test
+def TestCreateDateList(days: list):
+    list_for_dates = []
+    dy = 0
+    while dy < len(days):
+        year = days[dy]//10000
+        month = (days[dy]-(year*10000))//100
+        day = (days[dy]-(year*10000)-(month*100))//1
+        date_str = f"{day}-{month}-{year}"
+        list_for_dates.append(date_str)
+        dy += 1
+    return list_for_dates
 
+def TestCreateTimeList(time: list):
+    times_ready = []
+    tm = 0
+    while tm < len(time):
+        hour = time[tm]//100
+        minute = (time[tm]-(hour*100))//1
+        time_str = f"{hour}:{minute}"
+        times_ready.append(time_str)
+        tm += 1
+    return times_ready
     
+
+
+
+
+
 
 def T2():
     dates = database.GamesWithUsers('volleyball')
@@ -19,6 +45,138 @@ def T2():
 def TestingNamer (name: str, nick: str) -> str:
     return name + nick
 
+
+def GlobalT():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    #tdb.ResetUser(738070596)
+    #These functions I need to test
+    #StartRegistration()+
+    #FindCrashesRegUs()+
+    #FindCrashesViewWhoReg()+
+    #FindCrashesSchedule()+
+    #FindCrashesScheduleSet()+
+    #Next function work if the fuction before doesn't work
+    #FindCrashesScheduleDel()+
+    FindCrashesNotif()
+    #In another functions, data which arrive from Admin, doesn't need to test, because lies at the Admins's conscience. And I can't test anything
+
+
+
+def FindCrashesNotif():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    first = ["adjkliojeioj", 22, "-66"]
+    second = ["ajshdhjkahjkd", 3341, "Notif completed"]
+    third = ["234jjkl3kl", 1213123145, "user wait"]
+    tdb.CreateNotifUser()
+    FirstStepNotif(first)
+    if tdb.SelStatus(738070596) == "DELETE":
+        DelStepNotif(second)
+    else:
+        SecondtStepNotif(second)
+        ThirdStepNotif(third)
+
+
+def FirstStepNotif(f: list):
+    i = 0
+    while i < len(f):
+        tdb.Adjustment("notify the user", 0, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, f[i])
+        if admin.IDNotifCheck(738070596, f[i]):
+            (name, last_name, language, phone_number) = database.InfOfUser(int(f[i]))
+            (game_id, sport, date, time, status) = database.InfAboutGameofUser(int(f[i]))
+            if status == "DELETE":
+                assert(text == f"""Вот информация по этому пользователю:
+- Имя: {name}
+- Фамилия(если есть): {last_name}
+- Предпочтительный язык: {language}
+- Номер телефона(если был указан): {phone_number}
+
+
+
+Информация об игре, которую вы редактировали или удалили, а у этого пользователя была запись на эту игру (это уже измененные данные):
+- Вид спорта: {sport}
+- Дата: {date}
+- Время: {time}
+- Состояние: {status}
+
+Как только вы уведомите этого пользователя об изменеиях в расписании, то нажмите на кнопку 'Уведомлен', но так же
+вы можите спокойно пойти и заниматься чем угодно другим, а бот напомнит вам об этом чуть позже. Так как это удаленная игра,
+то никаких дальнейших к вам вопросов по поводу пользователя не будет.""")
+            else:
+                assert(text == f"""Вот информация по этому пользователю:
+- Имя: {name}
+- Фамилия(если есть): {last_name}
+- Предпочтительный язык: {language}
+- Номер телефона(если был указан): {phone_number}
+
+
+
+Информация об игре, которую вы редактировали или удалили, а у этого пользователя была запись на эту игру (это уже измененные данные):
+- Вид спорта: {sport}
+- Дата: {date}
+- Время: {time}
+- Состояние: {status}
+
+Как только вы уведомите этого пользователя об изменеиях в расписании, то нажмите на кнопку 'Уведомлен', но так же
+вы можите спокойно пойти и заниматься чем угодно другим, а бот напомнит вам об этом чуть позже.
+
+
+Как только вы уведомите этого пользователя об изменеиях в расписании, то нажмите на кнопку 'Уведомлен', но так же
+вы можите спокойно пойти и заниматься чем угодно другим, а бот напомнит вам об этом чуть позже. 
+Дальше я задам вам следующий вопрос: решил ли остаться пользователь на этой игре (уже измененной) или же отменил запись? 
+Так что рекомендую задать этот же вопрос пользователю.""")
+            assert(kbd == nav.Notif)
+        else:
+            names, id_user = database.WhoNeedNotif(738070596)
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nВыберите пользователя.")
+            assert(kbd == nav.kbnames(names, id_user))
+        i += 1
+
+
+def DelStepNotif(dd: list):
+    i = 0
+    while i < len(dd):
+        tdb.Adjustment2("notify the user", 1, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, dd[i])
+        if dd[i] == "Notif completed":
+            assert(text == "Прекрасно! Возвращаю вас в Главное Меню")
+            assert(kbd == nav.MenuOptions)
+        else:
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nВыберите действие.")
+            assert(kbd == nav.Notif)
+        i += 1
+
+
+def SecondtStepNotif(s: list): 
+    i = 0
+    while i < len(s):
+        tdb.Adjustment2("notify the user", 1, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, s[i])
+        if s[i] == "Notif completed":
+            assert(text == "Что выбрал пользователь?")
+            assert(kbd == nav.UserDecision)
+        else:
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nВыберите действие.")
+            assert(kbd == nav.Notif)
+        i += 1
+
+def ThirdStepNotif(th: list):
+    i = 0
+    while i < len(th):
+        tdb.Adjustment2("notify the user", 2, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, th[i])
+        if th[i] in ("user wait", "user not wait"):
+            if th[i] == "user wait":
+                assert(text == "Ура! Пользователь решил оставить запись на эту игру!\n\n\nДобро пожаловать в Главное Меню")
+            elif th[i] == "user not wait":
+                assert(text == "Ну что ж. Жаль. Но ничего не поделаешь\n\n\nДобро пожаловать в Главное Меню")
+            assert(kbd == nav.MenuOptions)
+        else:
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nЧто выбрал пользователь?")
+            assert(kbd == nav.UserDecision)
+        i += 1
 
 
 def FindCrashesRegUs():
@@ -30,7 +188,7 @@ def FindCrashesRegUs():
     third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6", "14 00"]
     fourth = [1111, 2, "Тристо", 55, 12, "2 3", "4 56 77 zzzzz"]
     fifth = ["adhbhjasdghjkas", 1231231231231, "наличные", "Наличные", "cash", "card"]
-    sixth = ['assmbdghasghjsghjk', 123124345774, 4, "aaaaa", 738070596, -66]
+    sixth = ['-124']
     FirstStepRegUs(first)
     SecondStepRegUs(second)
     ThirdStepRegUs(third)
@@ -47,29 +205,21 @@ def FirstStepRegUs(first: list):
         if first[i] in ("volleyball", "football"):
             schedule = database.FindDates()
             if schedule == 0:
-                assert(text == "Нет ни одной добавленной игры в расписании! Добавьте сначала игру в расписание, а уже потом регестрируйте пользователя\n\n\nГлавное меню")
+                assert(text == "Нет ни одной добавленной игры в расписании! Добавьте сначала игру в расписание, а уже потом зарегистрируйте пользователя. \n\n\nГлавное меню")
                 assert(kbd == nav.MenuOptions)
             else:
                 days = database.AllFreeDates(first[i])
                 if days == []:
-                    assert(text == "В расписании нет дат на этот вид спорта\nВыберите другой вид спорта или создайте новоую игру")
+                    assert(text == "В расписании нет дат на этот вид спорта. Выберите другой вид спорта или создайте новую игру.")
                     assert(kbd == nav.MenuSports)
                 else:
-                    assert(text == "Выберете дату:")
-                    list_for_dates = []
-                    day = 0
-                    while day < len(days):
-                        year = days[day]//10000
-                        month = (days[day]-(year*10000))//100
-                        day = (days[day]-(year*10000)-(month*100))//1
-                        date_str = f"{day}-{month}-{year}"
-                        list_for_dates.append(date_str)
-                        day += 1
-                    assert(kbd == nav.kbdata(list_for_dates))
+                    assert(text == "Выберите дату:")
+                    assert(kbd == nav.kbdata(TestCreateDateList(days)))
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\n\nВыберите вид спрота")
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nВыберите вид спорта.")
             assert(kbd == nav.MenuSports)
         i += 1
+
 
 def SecondStepRegUs(second: list):
     i = 0
@@ -78,24 +228,17 @@ def SecondStepRegUs(second: list):
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, second[i])
         bruh, date = admin.DateCheck(second[i])
         sport = tdb.SelSport(738070596)
-        if bruh is not True:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите дату")
-            list_for_dates = []
-            days = database.AllFreeDates(sport)
-            day = 0
-            while day < len(days):
-                year = days[day]//10000
-                month = (days[day]-(year*10000))//100
-                day = (days[day]-(year*10000)-(month*100))//1
-                date_str = f"{day}-{month}-{year}"
-                list_for_dates.append(date_str)
-                day += 1
-            assert(kbd == nav.kbdata(list_for_dates))
+        if bruh is True:
+            if date in (database.AllFreeDates(sport)):
+                seats = database.SeatsofTimesofDateofSport(date, sport)
+                assert(text == "Выберите время проведения игры")
+                assert(kbd == nav.kbtime(TestCreateTimeList(database.TimesOfFreeDates(date, sport)), seats))
+            else:
+                assert(text == "Вы выбрали дату, но, к сожалению, это не подходящая дата для вас. Выберите ту, которая показана на кнопках")
+                assert(kbd == nav.kbdata(TestCreateDateList(database.AllFreeDates(sport))))
         else:
-            times = database.TimesOfFreeDates(date, sport)
-            seats = database.SeatsofTimesofDateofSport(date, sport)
-            assert(text == "Выберите время проведения игры")
-            assert(kbd == nav.kbtime(times, seats))
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nВыберите дату.")
+            assert(kbd == nav.kbdata(TestCreateDateList(database.AllFreeDates(sport))))
         i += 1
 
 def ThirdStepRegUs(third: list):         
@@ -106,26 +249,18 @@ def ThirdStepRegUs(third: list):
         sport = tdb.SelSport(738070596)
         date = tdb.SelDate(738070596)
         times = database.TimesOfFreeDates(date, sport)
-        print("DADADA", times)
+        seats = database.SeatsofTimesofDateofSport(date, sport)
         bruh, timeschedule = admin.TimeCheck(third[cc], date)
         if bruh is True:
-            j = 0
-            while j < len(times):
-                if timeschedule == times[j]:
-                    already = True
-                    j = len(times)
-                else:
-                    already = False
-                j += 1
+            if timeschedule in times:
+                assert(text == "Выберите или введите желаемое количетсво мест.")
+                assert(kbd == nav.FrequentChoice)
+            else:
+                assert(text == "Вы прислали мне время, но, к сожалению, это не то время, которое я вам предложил на кнопках. Выберите, пожалуйста, то, что на кнопках.")
+                assert(kbd == nav.kbtime(TestCreateTimeList(times), seats))
         else:
-            already = False
-        if already is not True:
-            seats = database.SeatsofTimesofDateofSport(date, sport)
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ\n\n\nВыберите время проведения игры")
-            assert(kbd == nav.kbtime(times, seats))
-        else:
-            assert(text == "Выберите или введите желаемое количетсво мест")
-            assert(kbd == nav.FrequentChoice)
+            assert(text == "Я жду от вас нажатия на кнопку.\n\n\nВыберите время проведения игры.")
+            assert(kbd == nav.kbtime(TestCreateTimeList(times), seats))
         cc += 1
 
 
@@ -136,13 +271,13 @@ def FourthStepRegUs(fourth: list):
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fourth[i])
         if admin.IntCheck(fourth[i]):
             if halt is True:
-                assert(text == "Выберите способ оплаты")
+                assert(text == "Выберите способ оплаты.")
                 assert(kbd == nav.KbPay)
             else:
-                assert(text == "Вы ввели не цифру или же вы ввели цифру котороая больше чем свободныйх мест на эту игру\n\n\nВыберите или введите желаемое количетсво мест")
+                assert(text == "Вы ввели не цифру или ввели цифру, которая больше, чем количество свободных мест на эту игру.\n\n\nВыберите или введите желаемое количество мест.")
                 assert(kbd == nav.FrequentChoice)
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите или введите желаемое количетсво мест")
+            assert(text == "Я жду от вас нажатия на кнопку или сообщение, состоящее только из числа.\n\n\nВыберите или введите желаемое количество мест.")
             assert(kbd == nav.FrequentChoice)
         i += 1
 
@@ -153,10 +288,10 @@ def FifthStepRegUs(fifth: list):
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fifth[i])
         if fifth[i] in ("cash", "card"):
             (names_users, id_users) = database.AllUsers()
-            assert(text == "Выберите пользователя")
+            assert(text == "Выберите пользователя.")
             assert(kbd == nav.kbnames(names_users, id_users))
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите способ оплаты")
+            assert(text == "Я жду от вас нажатия на кнопку или сообщение, состоящее только из числа.\n\n\nВыберите способ оплаты.")
             assert(kbd == nav.KbPay)
         i += 1
 
@@ -166,10 +301,12 @@ def SixthStepRegUs(sixth: list):
         tdb.Adjustment("registration new user", 5, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, sixth[i])
         if admin.IDCheck(sixth[i]):
-            assert(text == "Мои поздравления! Вы зарегестрировали этого пользователя на игру.\nВозвращаю Вас в главное меню")
+            assert(text == "Мои поздравления! Вы зарегистрировали этого пользователя на игру.\nВозвращаю Вас в главное меню.")
             assert(kbd == nav.MenuOptions)
+            print("ВСЕ ПРОШЛО УСПЕШНО! ПОЛЬЗОВАТЕЛЬ ЗАРЕГЕСТРИРОАВН НА ИГРУ")
+            tdb.DelNewRegUsToGame(sixth[i])
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА ККНОПКУ ИЛИ ЖЕ СООБЩЕНИЕ СОСТОЯЩЕЕ ТОЛЬКО ИЗ ЧИСЛА\n\n\nВыберите пользователя")
+            assert(text == "Я жду от вас нажатия на кнопку или сообщение, состоящее только из числа.\n\n\nВыберите пользователя.")
             (names_users, id_users) = database.AllUsers()
             assert(kbd == nav.kbnames(names_users, id_users))
         i += 1
@@ -177,19 +314,44 @@ def SixthStepRegUs(sixth: list):
 
 
 
+
 def FindCrashesSchedule():
     admin.namer = TestingNamer
     database.ConnectTo("..\\bot(for_all)\\test_database.db")
-    div = [1111, 22, "aiskldjlaksdjkl", "new", "setSche", "delSche"]
-    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "volleyball", "volleyballll", "enything else", "football"]
+    div = [1111, 22, "aiskldjlaksdjkl", "new"]
+    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "5" "volleyball", "volleyballll", "enything else", "football"]
     second = ['asjhdahjksdhjkas', '11111111', 1111111, "14-07-2024", "06,02,2024", "20.12.2024", '04 02 2025', "66-27-2055", "76,27,2055" "56.57.2035", "33 55 2333", "15-07,2024", "24.07 2024"]
     third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6"]
-    fourth = [1111, 2, "Тристо", 55, 12, "2 3", "4 56 77 zzzzz"]
+    fourth = [11111, "2", "Тристо", "55", "12", "2 3", "4 56 77 zzzzz"]
     Divarication(div)
-    FirstStepSchedule(first)
-    SecondStepSchedule(second)
-    ThirdStepSchedule(third)
-    FourthStepSchedule(fourth)
+    FirstStepSchedule(first, 1)
+    SecondStepSchedule(second, 2)
+    ThirdStepSchedule(third, 3)
+    FourthStepSchedule(fourth, 4)
+
+def FindCrashesScheduleSet():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    div = [1111, 22, "aiskldjlaksdjkl", "setSche"]
+    beginer = [11, 232, "22", "2"]
+    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "5" "volleyball", "volleyballll", "enything else", "football"]
+    second = ['asjhdahjksdhjkas', '11111111', 1111111, "14-07-2024", "06,02,2024", "20.12.2024", '04 02 2025', "66-27-2055", "76,27,2055" "56.57.2035", "33 55 2333", "15-07,2024", "24.07 2025"]
+    third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 10"]
+    fourth = [1111, 2123123, "Тристо", "212312312233", "423123 5126 1277 zzzzz", "44"]
+    Divarication(div)
+    BeginStepSchedule(beginer)
+    FirstStepSchedule(first, 2)
+    SecondStepSchedule(second, 3)
+    ThirdStepSchedule(third, 4)
+    EndofSetSche(fourth, 5)
+
+def FindCrashesScheduleDel():
+    admin.namer = TestingNamer
+    database.ConnectTo("..\\bot(for_all)\\test_database.db")
+    div = [1111, 22, "aiskldjlaksdjkl", "delSche"]
+    beginer = [11, 232, "22", "5"]
+    Divarication(div)
+    BeginStepSchedule(beginer)
     
 
 def Divarication(div: list):
@@ -200,84 +362,125 @@ def Divarication(div: list):
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, div[i])
         if div[i] in ("new", "setSche", "delSche"):
             if div[i] == "new":
-                assert(text == "Дальше бы будете создавать новую игру\n\n\nВыберите вид спорта")
+                assert(text == "Дальше бы будете создавать новую игру\n\n\nВыберите вид спорта.")
                 assert(kbd == nav.MenuSports)
-            elif div[i] == "setSche":
-                assert(text == "Дальше вы будете редактировать ранее сделаное расписание на игру. Для этого вам нужно будет открыть файл, который я вам прислал, и выбрать игру которую вы хотите изменить. Мне нужен только ее порядковый номер")
-                assert(kbd == nav.WatNext)
-            elif div[i] == "delSche":
-                assert(text == "Дальше вы будете редактировать ранее сделаное расписание на игру. Для этого вам нужно будет открыть файл, который я вам прислал, и выбрать игру которую вы хотите изменить. Мне нужен только ее порядковый номер")
+            elif div[i] in ("setSche", "delSche"):
+                assert(text == "Дальше вы будете редактировать ранее сделанное расписание на игру. Для этого вам нужно будет открыть файл, который я вам прислал, и выбрать игру, которую вы хотите изменить. Мне нужен только её порядковый номер.")
                 assert(kbd == nav.WatNext)
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nВыберите что вас интересует")
+            assert(text == "Я жду от вас нажатия на кнопку!\n\nВыберите, что вас интересует.")
             assert(kbd == nav.SetSchedule)
         i += 1
 
 
-def FirstStepSchedule(first: list):
+def FirstStepSchedule(first: list, level: int):
     i = 0
     while i < len(first):
-        tdb.Adjustment("schedule setting", 1, 738070596)
+        tdb.Adjustment("schedule setting", level, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, first[i])
-        act = tdb.SelActSch(738070596)
-        if act == "new":
-            if first[i] in ("volleyball", "football"):
-                assert(text == "Напишите дату проведения игры\nОбязательно в таком формате: ДД-ММ-ГГГГ\n\n\n ОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел")
-                assert(kbd == None)
-            else:
-                assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ\n\nВыбрите вид спорта")
-                assert(kbd == nav.MenuSports)
-        elif act == "setSche":
-            if admin.IntCheck(first[i]):
-                assert(text == "Прекрасно! Вы выбрали номер игры, и теперь можете приступить к ее изменениям!\n\n\nВыберите вид спорта")
-                assert(kbd == nav.MenuSports)
-            else:
-                assert(text == "Вы ввели не номер игры, а что то еще. Напоминаю, мне нужен только номер, т.е. мне нужно одно сообщение от вас содержащее только одну цифру")
-                assert(kbd == nav.WatNext)
-        elif act == "delSche":
-            gid = tdb.SelNitifGameId(738070596)
-            assert(text == "Ну чтож, данная игра благополучно удаленна! Уведомления всем пользователям, которые зарегестрировались на эту игру через бота, я уже отправил, а вот несколько (если есть), которых регестрировали Вы и я к ним доступ не имею. Большая просьба предупредить их об отмене игры САМОСТОЯТЕЛЬНО! Для получения подробной информации об пользователях, выберите любого из них ниже")
-            (names_users, id_users) = database.SelPersonWhoNeedsNotif(gid)
-            assert(kbd == nav.kbnames(names_users, id_users))
+        if first[i] in ("volleyball", "football"):
+            assert(text == "Напишите дату проведения игры.\nБот примет за дату любое ваше сообщение, которое будет соответствовать следующему условию: \nПервые 1 или 2 цифры в сообщении будут расцениваться как число. Вторые 1 или 2 цифры будут расцениваться как месяц. И дальше, 4 следующие цифры, которые будут идти подряд, будут расцениваться как год.")
+            assert(kbd == None)
+        else:
+            assert(text == "Я жду от вас нажатия на кнопку.\n\nВыберите вид спорта.")
+            assert(kbd == nav.MenuSports)
         i += 1
 
-def SecondStepSchedule(second: list):
+
+def BeginStepSchedule(beg: list):
+    i = 0
+    while i < len(beg):
+        tdb.Adjustment("schedule setting", 1, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, beg[i])
+        act = tdb.SelActSch(738070596)
+        tdb.Podgonka(738070596)
+        if admin.GameIdCheck(beg[i]):
+            if act == "setSche":
+                assert(text == "Прекрасно! Вы выбрали номер игры, и теперь можете приступить к ее изменениям!\n\n\nВыберите вид спорта")
+                (kbd == nav.MenuSports)
+            else:
+                assert(text == testEndSchedule())
+                assert(kbd == nav.MenuOptions)
+                print("ВСЕ ХОРОШО! ФУНКЦИЯ УДАЛЕНИЯ ПРОШЛА УСПЕШНО!")
+        else:
+            assert(text == "Вы ввели не номер игры, а что то еще. Напоминаю, мне нужен только номер, т.е. мне нужно одно сообщение от вас содержащее только одну цифру.")
+            assert(kbd == nav.WatNext)
+        i += 1
+
+def testEndSchedule():
+    countusers, adminusers = database.CountTGUsers(738070596)
+    if countusers == 0 and adminusers == 0:
+        text = "Эту игру никто еще не ждет, так что уведомлять об изменениях пока что никого не нужно"
+    else:    
+        if countusers == 1:
+            if adminusers == 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователю. Но также есть еще {adminusers} пользователь, который нуждается в том, чтобы вы его предупредили сами. (Он будет находиться в Главном Меню под кнопкой 'Уведомления')."
+            elif adminusers > 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователю. Но также есть еще {adminusers} пользователей, которые нуждаются в том, чтобы вы предупредили их сами. (Они будут находиться в Главном Меню под кнопкой 'Уведомления')."
+            else:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователю. Все пользователи уведомлены, и я ожидаю ответа."
+        elif countusers > 1:
+            if adminusers == 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователям. Но также есть еще {adminusers} пользователь, который нуждается в том, чтобы вы его предупредили сами. (Он будет находиться в Главном Меню под кнопкой 'Уведомления')."
+            elif adminusers > 1:
+                text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователям. Но также есть еще {adminusers} пользователей, которые нуждаются в том, чтобы вы предупредили их сами. (Они будут находиться в Главном Меню под кнопкой 'Уведомления')."
+            else:
+               text = f"Расписание успешно обновлено. А также я уже выслал уведомление с просьбой пересмотреть свою запись на измененную игру {countusers} пользователям. Все пользователи уведомлены, и я ожидаю ответа."
+        else:
+            if adminusers == 1:
+                text = f"Расписание успешно обновлено. Нет ни одного пользователя, который записался на игру через бота, так что мне некого уведомлять. Но также есть еще {adminusers} пользователь, который нуждается в том, чтобы вы его предупредили сами. (Он будет находиться в Главном Меню под кнопкой 'Уведомления')."
+            elif adminusers > 1:
+                text = f"Расписание успешно обновлено. Нет ни одного пользователя, который записался на игру через бота, так что мне некого уведомлять. Но также есть еще {adminusers} пользователей, которые нуждаются в том, чтобы вы предупредили их сами. (Они будут находиться в Главном Меню под кнопкой 'Уведомления')."  
+    return text
+
+
+def SecondStepSchedule(second: list, level: int):
     i = 0
     while i < len(second):
-        tdb.Adjustment("schedule setting", 2, 738070596)
+        tdb.Adjustment("schedule setting", level, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, second[i])
         act = tdb.SelActSch(738070596)
         if act in ("new", "setSche"):
-            bruh, date = admin.DateCheck(second[i])
-            if bruh == False:
-                assert(text == "Вы ввели не дату или же дату, но она меньше чем сегодняшнее число\nНапишите дату\n\n\nОБЯЗАТЕЛЬНО между ДД, ММ и ГГГ поставьте следующие символы: '-' ',' '.' или пробел")
-                assert(kbd == None)
+            if act == "new":
+                bruh, date = admin.DateCheck(second[i])
+                if bruh == False:
+                    assert(text == "Вы ввели не дату или дату, которая меньше сегодняшнего числа.\nНапишите дату.")
+                    assert(kbd == None)
+                else:
+                    assert(text == "Напишите время проведения игры. \nБот примет за время любое ваше сообщение, которое будет соответствовать следующему условию:\n Первые 1 или 2 цифры в сообщении будут расцениваться как часы. А вторые 1 или 2 цифры будут расцениваться как минуты.")
+                    assert(kbd == None)
             else:
-                assert(text == "Напишите время проведения игры в формате: ЧЧ:ММ\n\n\nОБЯЗАТЕЛЬНО между ЧЧ и ММ поставьте следующие символы: '-' ',' '.' или пробел")
-                assert(kbd == None)
+                if admin.GameIdCheck(second[i]):
+                    assert(text == "Игра с этим номером существует. Введите желаемую дату (если хотите, то можно не менять дату, но нужно написать в любом случае, любую дату).")
+                    assert(kbd == None)
+                
+        i += 1
+    """         
         elif act == "delSche":
             if admin.IDCheck2(second[i]):
                 (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(738070596, int(second[i]))
                 assert(text == f"Вот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}")
-                assert(kbd == nav.Notif)
-        i += 1
+                assert(kbd == nav.Notif)"""
 
-def ThirdStepSchedule(third: list):
+def ThirdStepSchedule(third: list, level: int):
     i = 0
     while i < len(third):
-        tdb.Adjustment("schedule setting", 3, 738070596)
+        tdb.Adjustment("schedule setting", level, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, third[i])
         act= tdb.SelActSch(738070596)
         if act in ("new", "setSche"):
             date = tdb.SelDateSch(738070596)
             bruh, time = admin.TimeCheck(third[i], date)
             if bruh == False:
-                assert(text == "Вы ввели не время\nНапишите мне время")
+                assert(text == "Вы ввели не время.\nНапишите время.")
                 assert(kbd == None)
             else:
-                assert(text == "Напишите количетсво мест \n\n\nБоту нужно прислать число (однозначное или двузначное)")
+                assert(text == "Напишите количество мест.\n\nБоту нужно прислать число (однозначное или двузначное).")
                 assert(kbd == None)
-        elif act == "delSche":
+        i += 1
+        
+        
+        """elif act == "delSche":
             if third[i] in ("Notif completed", "Notif later"):
                 if third[i] == "Notif completed":
                     gid = tdb.SelNitifGameId(738070596)
@@ -296,48 +499,49 @@ def ThirdStepSchedule(third: list):
                 uid = tdb.SelUsId(738070596)
                 (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(738070596, int(uid))
                 assert(text == f"Я ЖДУ ОТ ВАС НАЖАТИЕ НАА КНОПКУ!\n\n\nВот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}")
-                assert(kbd == nav.Notif)
+                assert(kbd == nav.Notif)"""
 
-def FourthStepSchedule(fourth: list):
+def FourthStepSchedule(fourth: list, level: int):
     for fitem in fourth:
-        tdb.Adjustment("schedule setting", 4, 738070596)
+        tdb.Adjustment("schedule setting", level, 738070596)
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
-        act= tdb.SelActSch(738070596)
-        if act in ("new", "setSche"):
-            if admin.IntCheck(fitem) == False:
-                assert(text == "Вы ввели не число или же это число больше чем трехзначное значение\n\nПожалуйста, введите число, соблюдая все условия, а не что то еще\n\n\nБоту нужно прислать число (однозначное, двузначное или трехзначное)")
-                assert(kbd == None)
-            else:
-                if act == "new":
-                    assert(text == "Расписание успешно обновлено\nДобро пожаловать в главное меню")
-                    assert(kbd == nav.MenuOptions)
-                else:
-                    gid = tdb.SelNitifGameId(738070596)
-                    assert(text == "Расписание успешно обновлено\n\n\nВсех пользователей, которые регестрировались через бота, я уже уведомил! Вот пользователи, колторые регестрировались на эту игру через вас и теперь вы сами должны их сообщить об изменении расписания!")
-                    (names_users, id_users) = database.SelPersonWhoNeedsNotif(gid)
-                    assert(kbd == nav.kbnames(names_users, id_users))
+        if admin.IntCheck(fitem) == False:
+            assert(text == "Похоже, вы ввели не количество мест, или же вы ввели число, которое больше, чем максимальное значение двузначного числа. Введите, пожалуйста, нужное вам количество мест.")
+            assert(kbd == None)
+        else:
+            assert(text == "Расписание успешно обновлено.\nДобро пожаловать в Главное Меню.")
+            assert(kbd == nav.MenuOptions)
+            print("ВСЕ ХОРОШО! РАСПИСАНИЕ БЛАГОПОЛУЧНО ОБНОВЛЕНО!")
+            tdb.DelNewGame(738070596, fitem)
 
-        elif act == "delSche":
-            if fitem in ("user wait", "user not wait"):
-                if fitem == "user wait":
-                    assert(text == "Супер! Пользовтель решил оставить свою запись на этой игре!\n\n\nГлавное меню")
-                else:
-                    assert(text == "Жалко...Ну ничего, за то у нас теперь освободилось несколько мест)\n\n\nГлавное меню")
-                assert(kbd == nav.MenuOptions)
-            else:
-                assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\n\nСкажите пожалуйста, пользователь решил остаться, на перенесенной вами игре, или же отменил запись?")
-                assert(kbd == nav.UserDecision)
+def EndofSetSche(end: list, level: int):
+    i = 0
+    while i < len(end):
+        tdb.Adjustment("schedule setting", level, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, end[i])
+        if admin.IntCheck(end[i]):
+            assert(text == testEndSchedule())
+            assert(kbd == nav.MenuOptions)
+            tdb.DElwaitingusers(738070596)
+            print("УРА! ВСЕ ХОРОШО! МЫ ДОБАВИЛИ В УВЕДОМЛЕНИЯ ПОЛЬЗОВАТЕЛЯ!")
+        else:
+            assert(text == "Похоже, вы ввели не количество мест, или же вы ввели число, которое больше, чем максимальное значение двузначного числа. Введите, пожалуйста, нужное вам количество мест.")
+            assert(kbd == None)
+        i += 1
+
 
 def FindCrashesViewWhoReg():
     admin.namer = TestingNamer
     database.ConnectTo("..\\bot(for_all)\\test_database.db")
     tdb.DelAllInSch(738070596)
-    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "volleyballll", "enything else", "volleyball"]
+    first = ["dhjkfhjkdfhjkdfhjk", 1111111111, "volleyballll", "enything else", "football"]
     second = ['asjhdahjksdhjkas', '11111111', 1111111, "14-07-2024", "06,02,2024", "20.12.2024", '04 02 2025', "76,27,2055" "56.57.2035", "33 55 2333", "15-07,2024", "24.07 2024", "20-02-2024"]
-    third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6"]
+    third = ["12:00", "22 02", "14.45" "12,15", "24:01", "00.00", "12", "12 6", "14 00"]
+    fourth = ["ahjksdhjkasdhjk", 12313131, "-66"]
     FirstStepViewWhoReg(first)
     SecondStepViewWhoReg(second)
     ThirdStepViewWhoReg(third)
+    FourthStepViewWhoReg(fourth)
 
 
 
@@ -347,26 +551,17 @@ def FirstStepViewWhoReg(first: list):
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
         if fitem in ("volleyball", "football"):
             days_db = database.GamesWithUsers(fitem)
-            days_ready = []
-            db = 0
             if database.Nobody() == True:
-                assert(text == "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\n\nВозвращаю вас в главное меню")
+                assert(text == "Вообще никто не забронировал места на игры, так что нигде никого нет!\n\n\nВозвращаю Вас в главное меню.")
                 assert(kbd == nav.MenuOptions)
             elif days_db != []:
-                while db < len(days_db):
-                    year = days_db[db]//10000
-                    month = (days_db[db]-(year*10000))//100
-                    day = (days_db[db]-(year*10000)-(month*100))//1
-                    date_str = f"{day}-{month}-{year}"
-                    days_ready.append(date_str)
-                    db += 1
                 assert(text == "Выберите дату:")
-                assert(kbd == nav.kbdata(days_ready))
+                assert(kbd == nav.kbdata(TestCreateDateList(days_db)))
             else:
                 assert(text == "Никого нет\nВыберите вид спорта:")
                 assert(kbd == nav.MenuSports)
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите вид спорта")
+            assert(text == "Я жду от Вас нажатия на кнопку!\n\nВыберите вид спорта.")
             assert(kbd == nav.MenuSports)
 
 def SecondStepViewWhoReg(second: list):
@@ -379,45 +574,17 @@ def SecondStepViewWhoReg(second: list):
             if database.CheckDate(date, sport) != 0:
                 (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
                 if times != []:
-                    times_ready = []
-                    tm = 0
-                    while tm < len(times):
-                        hour = times[tm]//100
-                        minute = (times[tm]-(hour*100))//1
-                        time_str = f"{hour}:{minute}"
-                        times_ready.append(time_str)
-                        tm += 1
                     assert(text == "Выберите время проведения игры:")
-                    assert(kbd == nav.kbtime(time_str, seats))
+                    assert(kbd == nav.kbtime(TestCreateTimeList(times), seats))
                 else:
-                    assert(text == "Почему-то тут никого нет\nВозвращаю вас в главное меню")
+                    assert(text == "Почему-то тут никого нет.\n\nВозвращаю Вас в главное меню.")
                     assert(kbd == nav.MenuOptions)
             else:
-                assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
-                db = 0
-                days_ready = []
-                days_db = database.GamesWithUsers(sport)
-                while db < len(days_db):
-                    year = days_db[db]//10000
-                    month = (days_db[db]-(year*10000))//100
-                    day = (days_db[db]-(year*10000)-(month*100))//1
-                    date_str = f"{day}-{month}-{year}"
-                    days_ready.append(date_str)
-                    db += 1
-                kbd = nav.kbdata(days_ready)
+                assert(text == "Вы прислали мне дату, но, к сожалению, мне нужна только дата, которую я вам предлагаю на кнопках")
+                assert(kbd == nav.kbdata(TestCreateDateList(database.GamesWithUsers(sport))))
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
-            db = 0
-            days_ready = []
-            days_db = database.GamesWithUsers(sport)
-            while db < len(days_db):
-                year = days_db[db]//10000
-                month = (days_db[db]-(year*10000))//100
-                day = (days_db[db]-(year*10000)-(month*100))//1
-                date_str = f"{day}-{month}-{year}"
-                days_ready.append(date_str)
-                db += 1
-            kbd = nav.kbdata(days_ready)
+            assert(text == "Я жду от вас нажатия на кнопку!\n\nВыберите дату.")
+            assert(kbd == nav.kbdata(TestCreateDateList(database.GamesWithUsers(sport))))
 
 def ThirdStepViewWhoReg(third: list):
     for thitem in third:
@@ -425,37 +592,38 @@ def ThirdStepViewWhoReg(third: list):
         (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, thitem)
         date = tdb.SelDateView(738070596)
         bruh, time = admin.TimeCheck(thitem, date)
+        (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
         sport = tdb.SelSportView(738070596)
         if halt is True:
             if database.CheckTime(date, sport, time) != 0:
                 (name_users, id_users) = database.UsersOfGamesWithUsers(738070596, time)
-                assert(text == f"На эту игру зарегестрировалось {len(name_users)}\nНажмите на имена ниже чтоб узнать потробную информацию:")
+                assert(text == f"На эту игру зарегистрировалось {len(name_users)}.\nНажмите на имена ниже, чтобы узнать подробную информацию:")
                 assert(kbd == nav.kbnames(name_users, id_users))
             else:
-                assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
-                (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
-                times_ready = []
-                tm = 0
-                while tm < len(times):
-                    hour = times[tm]//100
-                    minute = (times[tm]-(hour*100))//1
-                    time_str = f"{hour}:{minute}"
-                    times_ready.append(time_str)
-                    tm += 1
-                assert(kbd == nav.kbtime(times, seats))
+                assert(text == "Вы прислали мне время, но, к сожалению, я жду от вас время, которое я вам предлагаю на кнопках\n\nВыберите время.")
+                
+                assert(kbd == nav.kbtime(TestCreateTimeList(times), seats))
         else:
-            assert(text == "Я ЖДУ ОТ ВАС НАЖАТИЕ НА КНОПКУ!\n\nВыберите дату")
-            (times, seats) = database.TimeOfGamesWithUsers(738070596, date)
-            times_ready = []
-            tm = 0
-            while tm < len(times):
-                hour = times[tm]//100
-                minute = (times[tm]-(hour*100))//1
-                time_str = f"{hour}:{minute}"
-                times_ready.append(time_str)
-                tm += 1
-            assert(kbd == nav.kbtime(times, seats))
+            assert(text == "Я жду от вас нажатия на кнопку!\n\nВыберите время.")
+            assert(kbd == nav.kbtime(TestCreateTimeList(times), seats))
 
+def FourthStepViewWhoReg(fourth: list):
+    for fitem in fourth:
+        tdb.Adjustment("view registered users", 3, 738070596)
+        (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, fitem)
+        time = tdb.SeltimeView(738070596)
+        if database.CheckUser(fitem) != 0:
+            (name, last_name, username, from_where, language, phone_number, us_seats, payment) = database.AllInfuser(738070596, int(fitem))
+            if username != "Информация отсутствует":
+                nick = (f"t.me/{username}")
+                name = TestingNamer(name, nick)
+            assert(text == f"Вот информация по этому пользователю:\nИмя: {name}\nФамилия(если есть): {last_name}\nНикнейм(если есть): {username}\nПредпочтительный язык: {language}\nОткуда пользователь: {from_where}\nНомер телефона(если был указан): {phone_number}\nЗабронировано мест вместе с ним(ней): {us_seats}\nСпособ оплаты: {payment}\n\n\n\nP.S. Если что, если пользователь регистрировался через бота, то можно кликнуть по его имени и перейти в диалог с ним")
+            assert(kbd == nav.BackorMenu)
+        else:
+            (name_users, id_users) = database.UsersOfGamesWithUsers(738070596, time)
+            assert(text == f"Я жду от Вас нажатия на кнопку!\n\nНа эту игру зарегистрировалось {len(name_users)}.\nНажмите на имена ниже, чтобы узнать подробную информацию:")
+            assert(kbd == nav.kbnames(name_users, id_users))
+        print("ВСЕ ХОРОШО! МЫ ПОСМОТРЕЛИ КТО КУДА ЗАПИСАЛСЯ!")
 
 #Global test
 def GlobalTest():
@@ -499,38 +667,44 @@ def GlobalTest():
 def StartRegistration():
     #начало
     (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, "sdhfkjdhjk")
-    assert(text == "Приветсвую Вас в нашем боте! Этот бот возможно нужен вам, только в том случае, если вы купили его первую часть и вам нужна админская чаcть))\nЕсли да - то нажмите на конопку снизу")
+    assert(text == "Добро пожаловать в нашего бота! Этот бот может пригодиться вам, если вы приобрели его первую часть и вам требуется административная часть. Если это ваш случай, то нажмите на кнопку снизу.")
     assert(kbd == nav.ComStartReg)
     #Начало регистриции
     (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, "Зарегистрироваться")
-    assert(text == "Введите пароль")
+    assert(text == "Введите пароль.")
     #Окончательная регистрация
     (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, "111")
-    assert(text == """Вот пара рекомендаций, как мной пользоваться:
-1. Узнать кто записался:
-        Вы выбираете вид спорта, дату, время и вам показывается кто зарегестрировался на эту игру, 
-        так же именно через эту функцию вы сможите связаться с участником 
-        (Если он зарегестрировался через бота, то можно будеть нажать на его имя и перейти с ним в диалог, 
-        а если нет - то тогда просто посмотрите контактную информацию и свяжитесь с ним сами.)
+    assert(text == """Вот пара рекомендаций о том, как пользоваться этим ботом:
+
+1. Узнать, кто записался:
+   - Выберите вид спорта, дату и время, чтобы увидеть, кто зарегистрировался на эту игру. Вы сможете связаться с участником через эту функцию. Если пользователь зарегистрировался через бота, то можно нажать на его имя и перейти в диалог с ним. Если нет, то вы можете просмотреть контактную информацию и связаться с ним самостоятельно.
+
 2. Настроить расписание:
-        С помощью этой функции бота Вы сможите настроить расписание, а именно: Добавить или Удалить
+   - С помощью этой функции вы можете настроить расписание, добавив или удалив игры.
+
 3. Создать нового пользователя:
-        Нажав на эту кнопку вы сможете создать нового пользователя (как бы это странно не было).
-        Данная функция предназначена для того, чтоб когда Вам звонят и просятся записать Вас их на игру, то для начала вы можите создать 
-        профиль этому пользолвателю, но этим профилем сможите пользоватся только Вы
-4. Зарегестрировать пользователя на игру:
-        Это функция продолжение предыдущей и не только. Тут Вы можите записать ЛЮБОГО пользователя на игру, который уже есть в системе
+   - Нажав на эту кнопку, вы можете создать нового пользователя. Эта функция предназначена для того, чтобы удобно записывать пользователей на игры.
+
+4. Зарегистрировать пользователя на игру:
+   - Это продолжение предыдущей функции. Здесь вы можете записать любого пользователя на игру, который уже есть в системе.
+
 5. Настроить/Удалить пользователя:
-        Думаю, название этой кнопки все и так за себя говорит
+   - Эта функция предназначена для настройки и удаления пользователей из системы.
+
 6. Получить отчет о деятельности бота:
-        Нажав на эту кнопку бот вышлет Вам html файл, который Вам надо будет открыть и там будет таблица из всей информации по расписанию
-    
-    
-    
-P.S. Если чо, то вот моя главная команда /menu она возвратит Вас из любой точки бота в главное меню, естсественно без сохранения прогресса""")
+   - Нажав на эту кнопку, бот отправит вам HTML-файл, в котором будет таблица с информацией о расписании.
+
+7. Уведомления:
+   - Тут будут храниться пользователи, которые нуждаются в вашем уведомлении. Но это будет только в том случае, если до этого вы меняли или удаляли какие-то игры из расписания.
+
+P.S. Если что-то пойдет не так, вы всегда можете использовать команду /menu, чтобы вернуться в главное меню без сохранения прогресса. 
+В самом крайнем случае, когда что то случиться с ботом и он зависнет, но вам нужно будет срочно что то сделать, то напишите ему команду /reset .
+Это команда опасна для вас же самих, так как это полностью удалит всю информацию в боте о вас и вам придется делать все сначала. Но она все же дает 
+второй шанс для того что бы закончить начатое. Большая просьба, если вы все же прибегли к такому виду перезагрузки бота, задокументируйте, 
+сфоткайте или еще что то сделаете и отправтье сведения об ошибке разработчику.""")
     assert(kbd == nav.Next)
     (text, kbd, prmode, halt, spreadsheet, fixed) = admin.DispatchPhrase(738070596, "next")
-    assert(text == "Вот опции которые вам дотупны:")
+    assert(text == "Вот опции, которые вам доступны:")
     assert(kbd == nav.MenuOptions)
 
 def AllButtons():

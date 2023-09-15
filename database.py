@@ -146,17 +146,18 @@ def RetainAdmin(id: int, name: str, surname: str,
                 action_change_user: str,
                 gid_notification: int,
                 uid_notification: int,
+                condition_notification: str,
                 level: int,
                 uid: int):
     with connection:
         cursor.execute("""UPDATE Admins SET user_id = ?, name = ?, last_name = ?, username = ?, action = ?, sport_check_users = ?, date_check_users = ?, time_check_users = ?, user_id_check_users = ?,
                             fromwhere_new_user = ?, name_new_user = ?, lastname_new_user = ?, language_new_user = ?, phonenum_new_user = ?, 
                             act_schedule = ?, game_id_schedule = ?, sport_schedule = ?, date_schedule = ?, time_schedule = ?, seats_schedule = ?, sport_reg_ad_us = ?, date_reg_ad_us = ?, time_reg_ad_us = ?, seats_reg_ad_us = ?, payment_reg_ad_us = ?, 
-                            user_id_change_user = ?, action_change_user = ?, gid_notification = ?, uid_notification = ?, level = ? WHERE user_id = ?""", 
+                            user_id_change_user = ?, action_change_user = ?, gid_notification = ?, uid_notification = ?, condition_notification = ?, level = ? WHERE user_id = ?""", 
                             (id, name, surname, username, act, sport_check_users, date_check_users, time_check_users, user_id_check_users,
                                 fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule,
                                 date_schedule, time_schedule, seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, 
-                                gid_notification, uid_notification, level, uid))
+                                gid_notification, uid_notification, condition_notification, level, uid))
 
 def SelAction(id: int) -> str:
     with connection:
@@ -213,9 +214,9 @@ def TimeOfGamesWithUsers(id: int, date: int) -> list:
     with connection:
         cursor.execute("SELECT sport_check_users FROM Admins WHERE user_id = :id", ({"id": id}))
         sport = cursor.fetchone()[0]
-        cursor.execute("SELECT time FROM schedule WHERE sport = :sp and date = :dt", ({"sp": sport, "dt": date}))
+        cursor.execute("SELECT Schedule.time FROM Schedule WHERE Schedule.sport = :sp AND Schedule.date = :dt", ({"sp": sport, "dt": date}))
         times = [row[0] for row in cursor.fetchall()]
-        cursor.execute("SELECT seats FROM schedule WHERE sport = :sp and date = :dt", ({"sp": sport, "dt": date}))
+        cursor.execute("SELECT Schedule.seats FROM Schedule WHERE Schedule.sport = :sp AND Schedule.date = :dt", ({"sp": sport, "dt": date}))
         seats = [row[0] for row in cursor.fetchall()]
         return times, seats
         
@@ -259,14 +260,15 @@ def RecallAdmin(id: int):
         else:
             res = int(level[0])
         cursor.execute("""SELECT user_id, name, last_name, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
-                                fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule sport_schedule, date_schedule, time_schedule,
-                                seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, level FROM Admins WHERE user_id = :id""", ({"id": id}))
+                                fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule, date_schedule, time_schedule,
+                                seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, 
+                                condition_notification, level FROM Admins WHERE user_id = :id""", ({"id": id}))
         (user_id, name, surname, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
         fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule, date_schedule, time_schedule,
-        seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, level) = cursor.fetchone()
+        seats_schedule, sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, condition_notification, level) = cursor.fetchone()
         return (user_id, name, surname, username, action, sport_check_users, date_check_users, time_check_users, user_id_check_users,
         fromwhere_new_user, name_new_user, lastname_new_user, language_new_user, phonenum_new_user, act_schedule, game_id_schedule, sport_schedule, date_schedule, time_schedule, seats_schedule,
-        sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, level)
+        sport_reg_ad_us, date_reg_ad_us, time_reg_ad_us, seats_reg_ad_us, payment_reg_ad_us, user_id_change_user, action_change_user, gid_notification, uid_notification, condition_notification, level)
         
         self.cursor.execute("SELECT action FROM admins WHERE user_id = ?", (id,))
         act = self.cursor.fetchone()[0]
@@ -318,11 +320,11 @@ def NewScheduleGame(id: int, seats: int):
     with connection:
         cursor.execute("SELECT sport_schedule, date_schedule, time_schedule FROM Admins WHERE user_id = :id", ({"id": id}))
         (sp, dt, tm) = cursor.fetchone()
-        cursor.execute("INSERT INTO Schedule (sport, date, time, seats) VALUES (:sp, :dt, :tm, :st)", ({"sp": sp, "dt": dt, "tm": tm, "st": seats}))
+        cursor.execute("INSERT INTO Schedule (sport, date, time, seats, status) VALUES (:sp, :dt, :tm, :st, 'get ready')", ({"sp": sp, "dt": dt, "tm": tm, "st": seats}))
 
 def AllFreeDates(sp: str) -> list:
     with connection:
-        cursor.execute("SELECT date FROM Schedule WHERE sport = :sp and seats IS NOT NULL", ({"sp": sp}))
+        cursor.execute("SELECT date FROM Schedule WHERE sport = :sp AND seats IS NOT NULL AND status IS NOT 'DELETE'", ({"sp": sp}))
         dates = [row[0] for row in cursor.fetchall()]
         return dates
     
@@ -331,7 +333,7 @@ def HowMutchSeats(id: int) -> int:
         cursor.execute("""SELECT seats
                             FROM Schedule
                             JOIN Admins ON Admins.sport_reg_ad_us = Schedule.sport and Admins.date_reg_ad_us = Schedule.date and Admins.time_reg_ad_us = Schedule.time
-                            WHERE Admins.user_id = :id""", ({"id": id}))
+                            WHERE Admins.user_id = :id AND Schedule.status IS NOT 'DELETE'""", ({"id": id}))
         seats = int(cursor.fetchone()[0])
         return seats
     
@@ -430,10 +432,11 @@ def DelUs(id: int):
     with connection:
         cursor.execute("UPDATE Users SET setup_reg = 'DELETE' WHERE user_id = ?", (id,))
         cursor.execute("UPDATE WatingForGamesUsers SET setup_reg = 'DELETE' WHERE user_id = ?", (id,))
+        cursor.execute("UPDATE WaitingForNotification SET setup = 'DELETE WHERE user_id = ?'", (id,))
 
 def CreateTable():
     with connection:
-        cursor.execute("SELECT game_id, sport, date, time, seats FROM Schedule")
+        cursor.execute("SELECT game_id, sport, date, time, seats FROM Schedule WHERE status IS NOT 'DELETE'")
         data = cursor.fetchall()
         return data
     
@@ -468,7 +471,7 @@ def CheckUser(id: int):
 
 def FindDates():
     with connection:
-        cursor.execute("SELECT COUNT(*) FROM Schedule")
+        cursor.execute("SELECT COUNT(*) FROM Schedule WHERE status IS NOT 'DELETE'")
         return cursor.fetchone()[0]
     
 def SelAllUid():
@@ -493,3 +496,172 @@ def CountUsWhoNeedNotif(gid: int):
     with connection:
         cursor.execute("SELECT COUNT(*) FROM WaitingForNotification WHERE game_id = ?", (gid,))
         return cursor.fetchone()[0]
+    
+def ChangedDates():
+    with connection:
+        cursor.execute("""SELECT Schedule.date
+                  FROM Schedule  
+                  JOIN WaitingForNotification ON Schedule.game_id = WaitingForNotification.game_id""")
+        days = [row[0] for row in cursor.fetchall()]
+        truedays = []
+        if days is not []:
+            while db < len(days):
+                year = days[db]//10000
+                month = (days[db]-(year*10000))//100
+                day = (days[db]-(year*10000)-(month*100))//1
+                date_str = f"{day}-{month}-{year}"
+                truedays.append(date_str)
+                db += 1
+        cursor.execute("""SELECT WaitingForNotification.status 
+                       FROM WaitingForNotification
+                       JOIN Schedule ON WaitingForNotification.game_id = Schedule.game_id""")
+        statuses = [row[0] for row in cursor.fetchall()]
+        return truedays, statuses
+
+def SelGid():
+    with connection:
+        cursor.execute("SELECT game_id FROM Schedule WHERE status IS NOT 'DELETE'")
+        gid = [row[0] for row in cursor.fetchall()]
+        return gid
+
+def CountTGUsers(id: int):
+    with connection:
+        cursor.execute("""SELECT COUNT(*)
+                        FROM Users
+                        JOIN WatingForGamesUsers ON Users.user_id = WatingForGamesUsers.user_id
+                        JOIN Schedule ON WatingForGamesUsers.game_id = Schedule.game_id
+                        JOIN Admins ON Schedule.sport = Admins.sport_schedule AND Schedule.date = Admins.date_schedule AND Schedule.time = Admins.time_schedule
+                        WHERE Admins.user_id = 738070596 and Users.username IS NOT NULL
+                        """, ({"id": id}))
+        tgusers = cursor.fetchone()[0]
+        if tgusers == 0:
+            cursor.execute("""SELECT *
+                        FROM Users
+                        JOIN WatingForGamesUsers ON Users.user_id = WatingForGamesUsers.user_id
+                        JOIN Schedule ON WatingForGamesUsers.game_id = Schedule.game_id
+                        JOIN Admins ON Schedule.sport = Admins.sport_schedule AND Schedule.date = Admins.date_schedule AND Schedule.time = Admins.time_schedule
+                        WHERE Admins.user_id = 738070596 and Users.username IS NOT NULL
+                        """)
+            print(cursor.fetchone())
+        cursor.execute("""SELECT COUNT(*)
+                        FROM Users
+                        JOIN WatingForGamesUsers ON Users.user_id = WatingForGamesUsers.user_id
+                        JOIN Schedule ON WatingForGamesUsers.game_id = Schedule.game_id
+                        JOIN Admins ON Schedule.sport = Admins.sport_schedule AND Schedule.date = Admins.date_schedule AND Schedule.time = Admins.time_schedule
+                        WHERE Admins.user_id = 738070596 and Users.username IS NULL
+                        """, ({"id": id}))
+        adusers = cursor.fetchone()[0]
+        print("я конечно дико извиняюсь", tgusers, adusers)
+        return tgusers, adusers
+    
+def ChangeGame(id: int, seats: int):
+    with connection:
+        cursor.execute("SELECT game_id_schedule, sport_schedule, date_schedule, time_schedule FROM Admins WHERE user_id = ?", (id,))
+        gid, sport, date, time = cursor.fetchone()
+        cursor.execute("SELECT sport, date, time, seats FROM Schedule JOIN Admins ON Admins.game_id_schedule = Schedule.game_id WHERE Admins.user_id = ?", (id,))
+        sp, dt, tm, st = cursor.fetchone()
+        print([sport, date, time, int(seats)])
+        print([sp, dt, tm, st])
+        if (sport != sp) or (date != dt) or (time != tm) or (int(seats) != st):
+            cursor.execute("UPDATE Schedule SET sport = :sport, date = :date, time = :time, seats = :seats, status = 'changed' WHERE game_id = :gid", ({"sport": sport, "date": date, "time": time, "seats": seats, "gid": gid}))
+
+def UserWhoNeedNotif(id: int):
+    with connection:
+        cursor.execute("""SELECT Users.user_id
+                        FROM Users
+                        JOIN WatingForGamesUsers ON Users.user_id = WatingForGamesUsers.user_id
+                        JOIN Schedule ON WatingForGamesUsers.game_id = Schedule.game_id
+                        JOIN Admins ON Schedule.sport = Admins.sport_schedule AND Schedule.date = Admins.date_schedule AND Schedule.time = Admins.time_schedule
+                        WHERE Admins.user_id = :id and Users.username IS NULL
+                        """, ({"id": id}))
+        users_ids = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT game_id_schedule FROM Admins WHERE user_id = ?", (id,))
+        gid = cursor.fetchone()[0]
+        i = 0
+        print("YAYAYAYYAYAYYAYA", users_ids)
+        while i < len(users_ids):
+            print("ТУТ Я ТУТ")
+            cursor.execute("INSERT INTO WaitingForNotification (game_id, admin_id, user_id, status) VALUES (:gid, :id, :uid, 'waiting')", ({"gid": gid, "id": id, "uid": users_ids[i]}))
+            i += 1
+
+def ShadowRemoveGame(gid: int):
+    with connection:
+        cursor.execute("UPDATE Schedule SET status = 'DELETE' WHERE game_id = :gid", ({"gid": gid}))
+
+def WhoNeedNotif(id: int):
+    with connection:
+        cursor.execute("SELECT name FROM Users JOIN WaitingForNotification ON Users.user_id = WaitingForNotification.user_id and WaitingForNotification.admin_id = :id WHERE WaitingForNotification.status IS NOT 'notified'", ({"id": id}))
+        names = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT last_name FROM Users JOIN WaitingForNotification ON Users.user_id = WaitingForNotification.user_id and WaitingForNotification.admin_id = :id WHERE WaitingForNotification.status IS NOT 'notified'", ({"id": id}))
+        last_names = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT Users.user_id FROM Users JOIN WaitingForNotification ON Users.user_id = WaitingForNotification.user_id and WaitingForNotification.admin_id = :id WHERE WaitingForNotification.status IS NOT 'notified'", ({"id": id}))
+        users_id = [row[0] for row in cursor.fetchall()]
+
+        namesandlastnames = [(x, y) for x, y in zip(names, last_names)]
+        return namesandlastnames, users_id
+
+def IdNotifUsers(id):
+    with connection:
+        cursor.execute("""SELECT Users.user_id FROM Users
+                       JOIN WaitingForNotification ON WaitingForNotification.user_id = Users.user_id AND
+                                                      WaitingForNotification.admin_id = ?""", (id,))
+        users_id = [row[0] for row in cursor.fetchall()]
+        return users_id
+
+def InfOfUser(uid: int):
+    with connection:
+        cursor.execute("SELECT name, last_name, language, phone_number FROM Users WHERE user_id = ?", (uid,))
+        name, last_name, language, phone_number = cursor.fetchone()
+        if name == None:
+            name = "Информация отсутствует"
+        if last_name == None:
+            last_name = "Информация отсутствует"
+        if language == None:
+            language = "Информация отсутствует"
+        if phone_number == None:
+            phone_number = "Информация отсутствует"
+
+        return name, last_name, language, phone_number
+
+def InfAboutGameofUser(uid: int):
+    with connection:
+        cursor.execute("""SELECT Schedule.game_id, Schedule.sport, Schedule.date, Schedule.time, Schedule.status
+                       FROM Schedule
+                       JOIN WaitingForNotification ON WaitingForNotification.game_id = Schedule.game_id AND 
+                       WaitingForNotification.user_id = ?""", (uid,))
+        game_id, sport, date, time, status = cursor.fetchone()
+
+        year = date//10000
+        month = (date-(year*10000))//100
+        day = (date-(year*10000)-(month*100))//1
+        date_str = f"{day}-{month}-{year}"
+
+        hour = time//100
+        minute = (time-(hour*100))//1
+        time_str = f"{hour}:{minute}"
+
+        return game_id, sport, date_str, time_str, status
+    
+def SetupUs(id: int, condition: str):
+    with connection:
+        cursor.execute("SELECT uid_notification, gid_notification FROM Admins WHERE user_id = ?",(id,))
+        uid, gid = cursor.fetchone()
+        cursor.execute("UPDATE WatingForGamesUsers SET setup_reg = :condition WHERE user_id = :uid AND game_id = :gid", ({"condition": condition, "uid": uid, "gid": gid}))
+        cursor.execute("UPDATE WaitingForNotification SET status = 'notified', setup = 'DELETE' WHERE user_id = :uid AND game_id = :gid AND admin_id = :id", ({"uid": uid, "gid": gid, "id": id}))
+
+def SeatsBack(id: int):
+    with connection:
+        cursor.execute("SELECT uid_notification, gid_notification FROM Admins WHERE user_id = ?",(id,))
+        uid, gid = cursor.fetchone()
+        cursor.execute("SELECT seats FROM WatingForGamesUsers WHERE user_id = :uid AND game_id = :gid", ({"uid": uid, "gid": gid}))
+        seats = cursor.fetchone()[0]
+        cursor.execute("SELECT seats FROM Schedule WHERE game_id = :gid", ({"gid": gid}))
+        remainder = cursor.fetchone()[0]
+        newseats = int(seats) + int(remainder)
+        cursor.execute("UPDATE Schedule SET seats = :newseats WHERE game_id = :gid", ({"newseats": newseats, "gid": gid}))
+
+def ChangeStatusUser(id):
+    with connection:
+        cursor.execute("SELECT uid_notification, gif_notification FROM Admins WHERE user_id = ?", (id,))
+        uid, gid = cursor.fetchone()
+        cursor.execute("UPDATE WaitingForNotification SET status = 'notified', setup = 'DELETE' WHERE user_id = :uid AND game_id = :gid AND admin_id = :id", ({"uid": uid, "gid": gid, "id": id}))
